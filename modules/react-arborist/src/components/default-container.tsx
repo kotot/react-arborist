@@ -18,60 +18,76 @@ let timeoutId: any = null;
 export function DefaultContainer() {
   useDataUpdates();
   const tree = useTreeApi();
-  
+
   // Sticky scroll state
   const [stickyNodes, setStickyNodes] = useState<NodeApi<any>[]>([]);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
-  
+
   // Calculate sticky nodes from current scroll position
-  const calculateStickyNodes = useCallback((scrollOffset: number): NodeApi<any>[] => {
-    if (!tree.props.stickyScroll || !tree.visibleNodes.length || scrollOffset <= 0) {
-      return [];
-    }
-    
-    // Find current node based on scroll position
-    const currentIndex = Math.floor(scrollOffset / tree.rowHeight);
-    const clampedIndex = Math.min(currentIndex, tree.visibleNodes.length - 1);
-    const currentNode = tree.visibleNodes[clampedIndex];
-    
-    if (!currentNode) return [];
-    
-    // Build path from root to current node, only including folders
-    const path: NodeApi<any>[] = [];
-    let node: NodeApi<any> | null = currentNode;
-    
-    while (node && !node.isRoot) {
-      if (node.isInternal) { // folder
-        path.unshift(node);
+  const calculateStickyNodes = useCallback(
+    (scrollOffset: number): NodeApi<any>[] => {
+      if (
+        !tree.props.stickyScroll ||
+        !tree.visibleNodes.length ||
+        scrollOffset <= 0
+      ) {
+        return [];
       }
-      node = node.parent;
-    }
-    
-    // Limit to max sticky nodes
-    const maxNodes = tree.props.stickyScrollMaxNodes || 5;
-    return path.slice(-maxNodes);
-  }, [tree.props.stickyScroll, tree.visibleNodes, tree.rowHeight, tree.props.stickyScrollMaxNodes]);
-  
+
+      // Find current node based on scroll position
+      const currentIndex = Math.floor(scrollOffset / tree.rowHeight);
+      const clampedIndex = Math.min(currentIndex, tree.visibleNodes.length - 1);
+      const currentNode = tree.visibleNodes[clampedIndex];
+
+      if (!currentNode) return [];
+
+      // Build path from root to current node, only including folders
+      const path: NodeApi<any>[] = [];
+      let node: NodeApi<any> | null = currentNode;
+
+      while (node && !node.isRoot) {
+        if (node.isInternal) {
+          // folder
+          path.unshift(node);
+        }
+        node = node.parent;
+      }
+
+      // Limit to max sticky nodes
+      const maxNodes = tree.props.stickyScrollMaxNodes || 5;
+      return path.slice(-maxNodes);
+    },
+    [
+      tree.props.stickyScroll,
+      tree.visibleNodes,
+      tree.rowHeight,
+      tree.props.stickyScrollMaxNodes,
+    ],
+  );
+
   // Handle scroll events
-  const handleScroll = useCallback((props: any) => {
-    if (tree.props.stickyScroll) {
-      // Clear previous timeout
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
+  const handleScroll = useCallback(
+    (props: any) => {
+      if (tree.props.stickyScroll) {
+        // Clear previous timeout
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+
+        // Update sticky nodes with debounce
+        scrollTimeoutRef.current = setTimeout(() => {
+          const nodes = calculateStickyNodes(props.scrollOffset);
+          setStickyNodes(nodes);
+        }, 16); // ~60fps
       }
-      
-      // Update sticky nodes with debounce
-      scrollTimeoutRef.current = setTimeout(() => {
-        const nodes = calculateStickyNodes(props.scrollOffset);
-        setStickyNodes(nodes);
-      }, 16); // ~60fps
-    }
-    
-    // Call original onScroll handler
-    if (tree.props.onScroll) {
-      tree.props.onScroll(props);
-    }
-  }, [tree.props.stickyScroll, calculateStickyNodes, tree.props.onScroll]);
+
+      // Call original onScroll handler
+      if (tree.props.onScroll) {
+        tree.props.onScroll(props);
+      }
+    },
+    [tree.props.stickyScroll, calculateStickyNodes, tree.props.onScroll],
+  );
   return (
     <div
       role="tree"
@@ -81,7 +97,7 @@ export function DefaultContainer() {
         minHeight: 0,
         minWidth: 0,
         overflow: "hidden",
-        position: "relative"
+        position: "relative",
       }}
       onContextMenu={tree.props.onContextMenu}
       onClick={tree.props.onClick}
@@ -285,7 +301,6 @@ export function DefaultContainer() {
             zIndex: 10,
             pointerEvents: "auto",
             maxHeight: tree.height,
-            overflow: "hidden"
           }}
         >
           {stickyNodes.map((node, index) => (
@@ -299,7 +314,7 @@ export function DefaultContainer() {
           ))}
         </div>
       )}
-      
+
       {/* @ts-ignore */}
       <FixedSizeList
         className={tree.props.className}
@@ -337,17 +352,17 @@ function StickyHeader({ node, index, rowHeight, tree }: StickyHeaderProps) {
     width: "100%",
     height: rowHeight,
   };
-  
+
   const indent = tree.indent * node.level;
   const nodeStyle = { paddingLeft: indent };
-  
+
   const rowStyle = {
     ...style,
     background: "var(--vscode-editor-background, #1e1e1e)",
     borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
     zIndex: 10,
   };
-  
+
   const rowAttrs = {
     role: "treeitem",
     "aria-level": node.level + 1,
@@ -355,7 +370,7 @@ function StickyHeader({ node, index, rowHeight, tree }: StickyHeaderProps) {
     "aria-expanded": node.isOpen,
     style: rowStyle,
     tabIndex: -1,
-    className: tree.props.rowClassName,
+    className: "sticky-row",
   };
 
   const Node = tree.renderNode;
