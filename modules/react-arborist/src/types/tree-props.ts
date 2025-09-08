@@ -77,4 +77,8 @@ export interface TreeProps<T> {
   onClick?: MouseEventHandler;
   onContextMenu?: MouseEventHandler;
   dndManager?: ReturnType<typeof useDragDropManager>;
+
+  /* Sticky Scroll */
+  stickyScroll?: boolean;
+  stickyScrollMaxNodes?: number;
 }

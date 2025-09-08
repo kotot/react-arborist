@@ -48,6 +48,11 @@
   background-image: url(/img/cities-demo.png);
 }
 
+.demoCardImage:global(.vscode) {
+  background-image: url(/img/vscode-demo.png);
+  background-position: center;
+}
+
 .demoCard b {
   background: hsl(5deg 65% 52%);
   color: white;

@@ -1,6 +1,5 @@
 import React from "react";
 import { TreeApi } from "./tree-api";
-import { IdObj } from "../types/utils";
 import { ROOT_ID } from "../data/create-root";
 
 type Params<T> = {
@@ -45,6 +44,10 @@ export class NodeApi<T = any> {
 
   get isInternal() {
     return !this.isLeaf;
+  }
+
+  get type() {
+    return this.isInternal ? 'folder' : 'file';
   }
 
   get isOpen() {

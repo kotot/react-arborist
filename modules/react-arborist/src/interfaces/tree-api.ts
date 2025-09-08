@@ -30,6 +30,7 @@ export class TreeApi<T> {
   visibleStartIndex: number = 0;
   visibleStopIndex: number = 0;
   idToIndex: { [id: string]: number };
+  scrollOffset: number = 0;
 
   constructor(
     public store: Store<RootState, Actions>,

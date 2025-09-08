@@ -1,9 +1,11 @@
+import { useState, useCallback, useRef } from "react";
 import { FixedSizeList } from "react-window";
 import { useDataUpdates, useTreeApi } from "../context";
 import { focusNextElement, focusPrevElement } from "../utils";
 import { ListOuterElement } from "./list-outer-element";
 import { ListInnerElement } from "./list-inner-element";
 import { RowContainer } from "./row-container";
+import type { NodeApi } from "../interfaces/node-api";
 
 let focusSearchTerm = "";
 let timeoutId: any = null;
@@ -16,6 +18,60 @@ let timeoutId: any = null;
 export function DefaultContainer() {
   useDataUpdates();
   const tree = useTreeApi();
+  
+  // Sticky scroll state
+  const [stickyNodes, setStickyNodes] = useState<NodeApi<any>[]>([]);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Calculate sticky nodes from current scroll position
+  const calculateStickyNodes = useCallback((scrollOffset: number): NodeApi<any>[] => {
+    if (!tree.props.stickyScroll || !tree.visibleNodes.length || scrollOffset <= 0) {
+      return [];
+    }
+    
+    // Find current node based on scroll position
+    const currentIndex = Math.floor(scrollOffset / tree.rowHeight);
+    const clampedIndex = Math.min(currentIndex, tree.visibleNodes.length - 1);
+    const currentNode = tree.visibleNodes[clampedIndex];
+    
+    if (!currentNode) return [];
+    
+    // Build path from root to current node, only including folders
+    const path: NodeApi<any>[] = [];
+    let node: NodeApi<any> | null = currentNode;
+    
+    while (node && !node.isRoot) {
+      if (node.isInternal) { // folder
+        path.unshift(node);
+      }
+      node = node.parent;
+    }
+    
+    // Limit to max sticky nodes
+    const maxNodes = tree.props.stickyScrollMaxNodes || 5;
+    return path.slice(-maxNodes);
+  }, [tree.props.stickyScroll, tree.visibleNodes, tree.rowHeight, tree.props.stickyScrollMaxNodes]);
+  
+  // Handle scroll events
+  const handleScroll = useCallback((props: any) => {
+    if (tree.props.stickyScroll) {
+      // Clear previous timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // Update sticky nodes with debounce
+      scrollTimeoutRef.current = setTimeout(() => {
+        const nodes = calculateStickyNodes(props.scrollOffset);
+        setStickyNodes(nodes);
+      }, 16); // ~60fps
+    }
+    
+    // Call original onScroll handler
+    if (tree.props.onScroll) {
+      tree.props.onScroll(props);
+    }
+  }, [tree.props.stickyScroll, calculateStickyNodes, tree.props.onScroll]);
   return (
     <div
       role="tree"
@@ -24,6 +80,8 @@ export function DefaultContainer() {
         width: tree.width,
         minHeight: 0,
         minWidth: 0,
+        overflow: "hidden",
+        position: "relative"
       }}
       onContextMenu={tree.props.onContextMenu}
       onClick={tree.props.onClick}
@@ -216,6 +274,32 @@ export function DefaultContainer() {
         if (node) tree.focus(node.id);
       }}
     >
+      {/* Sticky Headers Overlay */}
+      {tree.props.stickyScroll && stickyNodes.length > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            pointerEvents: "auto",
+            maxHeight: tree.height,
+            overflow: "hidden"
+          }}
+        >
+          {stickyNodes.map((node, index) => (
+            <StickyHeader
+              key={node.id}
+              node={node}
+              index={index}
+              rowHeight={tree.rowHeight}
+              tree={tree}
+            />
+          ))}
+        </div>
+      )}
+      
       {/* @ts-ignore */}
       <FixedSizeList
         className={tree.props.className}
@@ -228,12 +312,58 @@ export function DefaultContainer() {
         itemKey={(index) => tree.visibleNodes[index]?.id || index}
         outerElementType={ListOuterElement}
         innerElementType={ListInnerElement}
-        onScroll={tree.props.onScroll}
+        onScroll={handleScroll}
         onItemsRendered={tree.onItemsRendered.bind(tree)}
         ref={tree.list}
       >
         {RowContainer}
       </FixedSizeList>
     </div>
+  );
+}
+
+interface StickyHeaderProps {
+  node: NodeApi<any>;
+  index: number;
+  rowHeight: number;
+  tree: any;
+}
+
+function StickyHeader({ node, index, rowHeight, tree }: StickyHeaderProps) {
+  const style = {
+    position: "absolute" as const,
+    top: index * rowHeight,
+    left: 0,
+    width: "100%",
+    height: rowHeight,
+  };
+  
+  const indent = tree.indent * node.level;
+  const nodeStyle = { paddingLeft: indent };
+  
+  const rowStyle = {
+    ...style,
+    background: "var(--vscode-editor-background, #1e1e1e)",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+    zIndex: 10,
+  };
+  
+  const rowAttrs = {
+    role: "treeitem",
+    "aria-level": node.level + 1,
+    "aria-selected": node.isSelected,
+    "aria-expanded": node.isOpen,
+    style: rowStyle,
+    tabIndex: -1,
+    className: tree.props.rowClassName,
+  };
+
+  const Node = tree.renderNode;
+  const Row = tree.renderRow;
+
+  return (
+    <Row node={node} innerRef={() => {}} attrs={rowAttrs}>
+      <Node node={node} tree={tree} style={nodeStyle} dragHandle={() => {}} />
+    </Row>
   );
 }

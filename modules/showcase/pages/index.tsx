@@ -52,6 +52,20 @@ const Home: NextPage = () => {
               <Link href="/cities">View Demo</Link>
             </div>
           </Link>
+
+          <Link href="/vscode" legacyBehavior>
+            <div className={styles.demoCard}>
+              <div className={`${styles.demoCardImage} vscode`}></div>
+              <b>Sticky Scroll</b>
+              <h2>VS Code File Explorer</h2>
+              <p>
+                This demo showcases the sticky scroll feature, keeping folder
+                hierarchy visible while scrolling through deeply nested file
+                structures, just like VS Code.
+              </p>
+              <Link href="/vscode">View Demo</Link>
+            </div>
+          </Link>
         </div>
       </main>
     </div>
