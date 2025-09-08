@@ -590,6 +590,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@byted/react-arborist@workspace:*, @byted/react-arborist@workspace:modules/react-arborist":
+  version: 0.0.0-use.local
+  resolution: "@byted/react-arborist@workspace:modules/react-arborist"
+  dependencies:
+    "@types/jest": "npm:^29.5.11"
+    "@types/react": "npm:^18.2.43"
+    "@types/react-window": "npm:^1.8.8"
+    "@types/use-sync-external-store": "npm:^0.0.6"
+    jest: "npm:^29.7.0"
+    npm-run-all: "npm:^4.1.5"
+    react-dnd: "npm:^14.0.3"
+    react-dnd-html5-backend: "npm:^14.0.3"
+    react-window: "npm:^1.8.11"
+    redux: "npm:^5.0.0"
+    rimraf: "npm:^5.0.5"
+    ts-jest: "npm:^29.1.1"
+    typescript: "npm:^5.6.0"
+    use-sync-external-store: "npm:^1.2.0"
+  peerDependencies:
+    react: ">= 16.14"
+    react-dom: ">= 16.14"
+  languageName: unknown
+  linkType: soft
+
 "@colors/colors@npm:1.5.0":
   version: 1.5.0
   resolution: "@colors/colors@npm:1.5.0"
@@ -1099,30 +1123,6 @@ __metadata:
   checksum: 73d1d00ee9132fb6f0aea0531940a6b93603e935590bd450fc6285a328d906102eeeb95dea77b2edac0e779031a9708aa8c82502bd298ee4dd26e7dff48f397a
   languageName: node
   linkType: hard
-
-"@kotot/react-arborist@workspace:*, @kotot/react-arborist@workspace:modules/react-arborist":
-  version: 0.0.0-use.local
-  resolution: "@kotot/react-arborist@workspace:modules/react-arborist"
-  dependencies:
-    "@types/jest": "npm:^29.5.11"
-    "@types/react": "npm:^18.2.43"
-    "@types/react-window": "npm:^1.8.8"
-    "@types/use-sync-external-store": "npm:^0.0.6"
-    jest: "npm:^29.7.0"
-    npm-run-all: "npm:^4.1.5"
-    react-dnd: "npm:^14.0.3"
-    react-dnd-html5-backend: "npm:^14.0.3"
-    react-window: "npm:^1.8.11"
-    redux: "npm:^5.0.0"
-    rimraf: "npm:^5.0.5"
-    ts-jest: "npm:^29.1.1"
-    typescript: "npm:^5.6.0"
-    use-sync-external-store: "npm:^1.2.0"
-  peerDependencies:
-    react: ">= 16.14"
-    react-dom: ">= 16.14"
-  languageName: unknown
-  linkType: soft
 
 "@next/env@npm:14.0.4":
   version: 14.0.4
@@ -8615,7 +8615,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "showcase@workspace:modules/showcase"
   dependencies:
-    "@kotot/react-arborist": "workspace:*"
+    "@byted/react-arborist": "workspace:*"
     "@types/node": "npm:20.10.4"
     "@types/react": "npm:18.2.43"
     "@types/react-dom": "npm:18.2.17"

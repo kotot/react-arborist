@@ -10,7 +10,7 @@
     "clean": "rimraf .next out"
   },
   "dependencies": {
-    "@kotot/react-arborist": "workspace:*",
+    "@byted/react-arborist": "workspace:*",
     "clsx": "^2.0.0",
     "nanoid": "^5.0.4",
     "next": "^14.0.4",
