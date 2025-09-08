@@ -1,122 +1,123 @@
 .root {
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    grid-template-rows: 1fr;
-    height: 100vh;
-    width: 100vw;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  grid-template-rows: 1fr;
+  height: 100vh;
+  width: 100vw;
 }
 
 .node {
-    font-size: 13px;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 10px;
-    cursor: default;
-    height: 100%;
-    align-items: center;;
+  font-size: 13px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  cursor: default;
+  height: 100%;
+  align-items: center;
 }
 
 .sidebar {
-    background: #192226;
-    color: rgb(95, 122, 135);
+  background: #192226;
+  color: rgb(95, 122, 135);
 }
 
 .main {
-    background: #253238;
-    overflow: auto;
+  background: #253238;
+  overflow: auto;
 }
 
 .content {
-    padding: 2rem;
-    color: #e8eaed;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    max-width: 800px;
-    line-height: 1.6;
+  padding: 2rem;
+  color: #e8eaed;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  max-width: 800px;
+  line-height: 1.6;
 }
 
 .content h1 {
-    color: #80CBC4;
-    margin-bottom: 1rem;
+  color: #80cbc4;
+  margin-bottom: 1rem;
 }
 
 .content h2 {
-    color: #ffffff;
-    margin-top: 2rem;
-    margin-bottom: 0.5rem;
+  color: #ffffff;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
 }
 
-.content ul, .content ol {
-    margin-left: 1.5rem;
+.content ul,
+.content ol {
+  margin-left: 1.5rem;
 }
 
 .content li {
-    margin-bottom: 0.3rem;
+  margin-bottom: 0.3rem;
 }
 
 .content code {
-    background: #1e1e1e;
-    color: #80CBC4;
-    padding: 0.2rem 0.4rem;
-    border-radius: 3px;
-    font-size: 0.9em;
+  background: #1e1e1e;
+  color: #80cbc4;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
 }
 
 .code {
-    background: #1e1e1e;
-    color: #e8eaed;
-    padding: 1rem;
-    border-radius: 6px;
-    overflow-x: auto;
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    border: 1px solid #3c4043;
+  background: #1e1e1e;
+  color: #e8eaed;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border: 1px solid #3c4043;
 }
 
 .node:global(.isInternal) svg {
-    fill: #80CBC4;
+  fill: #80cbc4;
 }
 
 .node:global(.isLeaf) svg {
-    width: 10px;
-    fill: #3865BD;
+  width: 10px;
+  fill: #3865bd;
 }
 
 .node:hover {
-    color: white;
+  color: white;
 }
 
 .highlight {
-    background: #062F4A;
+  background: #062f4a;
 }
 
 /* Sticky Scroll 样式定制 - VS Code 主题 */
 .sidebar :global(.react-arborist-sticky-container) {
-    --react-arborist-background: #192226;
-    --react-arborist-hover-background: rgba(255, 255, 255, 0.08);
-    --react-arborist-border-color: #3c4043;
-    --react-arborist-text-color: rgb(95, 122, 135);
-    --react-arborist-separator-color: #80CBC4;
-    --react-arborist-shadow-color: rgba(0, 0, 0, 0.4);
+  --react-arborist-background: #192226;
+  --react-arborist-hover-background: rgba(255, 255, 255, 0.08);
+  --react-arborist-border-color: #3c4043;
+  --react-arborist-text-color: rgb(95, 122, 135);
+  --react-arborist-separator-color: #80cbc4;
+  --react-arborist-shadow-color: rgba(0, 0, 0, 0.4);
 }
 
 .sidebar :global(.react-arborist-sticky-row) {
-    font-size: 13px;
-    font-weight: 500;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .sidebar :global(.react-arborist-sticky-row:hover) {
-    color: white;
-    background-color: var(--react-arborist-hover-background);
+  color: white;
+  background-color: var(--react-arborist-hover-background);
 }
 
 .sidebar :global(.react-arborist-sticky-icon) {
-    color: #80CBC4;
-    margin-right: 6px;
+  color: #80cbc4;
+  margin-right: 6px;
 }
 
 .sidebar :global(.react-arborist-sticky-separator) {
-    color: #80CBC4;
-    opacity: 0.7;
-    margin: 0 4px;
+  color: #80cbc4;
+  opacity: 0.7;
+  margin: 0 4px;
 }

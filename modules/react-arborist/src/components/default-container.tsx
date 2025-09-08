@@ -34,28 +34,52 @@ export function DefaultContainer() {
         return [];
       }
 
-      // Find current node based on scroll position
-      const currentIndex = Math.floor(scrollOffset / tree.rowHeight);
-      const clampedIndex = Math.min(currentIndex, tree.visibleNodes.length - 1);
-      const currentNode = tree.visibleNodes[clampedIndex];
+      const maxNodes = tree.props.stickyScrollMaxNodes || 5;
+
+      // Initial calculation without sticky compensation
+      let currentIndex = Math.floor(scrollOffset / tree.rowHeight);
+      let clampedIndex = Math.min(currentIndex, tree.visibleNodes.length - 1);
+      let currentNode = tree.visibleNodes[clampedIndex];
 
       if (!currentNode) return [];
 
-      // Build path from root to current node, only including folders
-      const path: NodeApi<any>[] = [];
-      let node: NodeApi<any> | null = currentNode;
+      // Build initial path to determine sticky count needed
+      const buildPath = (node: NodeApi<any>): NodeApi<any>[] => {
+        const path: NodeApi<any>[] = [];
+        let n: NodeApi<any> | null = node;
 
-      while (node && !node.isRoot) {
-        if (node.isInternal) {
-          // folder
-          path.unshift(node);
+        while (n && !n.isRoot) {
+          if (n.isInternal) {
+            path.unshift(n);
+          }
+          n = n.parent;
         }
-        node = node.parent;
+        return path.slice(-maxNodes);
+      };
+
+      let path = buildPath(currentNode);
+      
+      // If we have potential sticky nodes, recalculate with compensation
+      if (path.length > 0) {
+        const stickyHeight = path.length * tree.rowHeight;
+        const adjustedOffset = scrollOffset + stickyHeight;
+        const adjustedIndex = Math.floor(adjustedOffset / tree.rowHeight);
+        const adjustedClampedIndex = Math.min(adjustedIndex, tree.visibleNodes.length - 1);
+        
+        // Only use adjusted calculation if it gives us a different, valid node
+        if (adjustedIndex !== currentIndex && tree.visibleNodes[adjustedClampedIndex]) {
+          const adjustedNode = tree.visibleNodes[adjustedClampedIndex];
+          const adjustedPath = buildPath(adjustedNode);
+          
+          // Use adjusted path only if it's substantially different
+          if (adjustedPath.length !== path.length || 
+              adjustedPath[adjustedPath.length - 1]?.id !== path[path.length - 1]?.id) {
+            path = adjustedPath;
+          }
+        }
       }
 
-      // Limit to max sticky nodes
-      const maxNodes = tree.props.stickyScrollMaxNodes || 5;
-      return path.slice(-maxNodes);
+      return path;
     },
     [
       tree.props.stickyScroll,

@@ -1,6 +1,6 @@
 import useResizeObserver from "use-resize-observer";
 import styles from "../styles/vscode.module.css";
-import { NodeRendererProps, Tree } from "react-arborist";
+import { NodeRendererProps, Tree } from "@byted/react-arborist";
 import { SiTypescript } from "react-icons/si";
 import { MdFolder } from "react-icons/md";
 import clsx from "clsx";
@@ -35,8 +35,8 @@ const structure = [
           "forms",
           file("login-form.tsx"),
           file("signup-form.tsx"),
-          file("contact-form.tsx")
-        )
+          file("contact-form.tsx"),
+        ),
       ),
       folder(
         "layout",
@@ -47,9 +47,9 @@ const structure = [
           "navigation",
           file("nav-bar.tsx"),
           file("breadcrumb.tsx"),
-          file("menu.tsx")
-        )
-      )
+          file("menu.tsx"),
+        ),
+      ),
     ),
     folder(
       "lib",
@@ -66,9 +66,9 @@ const structure = [
           "services",
           file("user-service.ts"),
           file("data-service.ts"),
-          file("file-service.ts")
-        )
-      )
+          file("file-service.ts"),
+        ),
+      ),
     ),
     folder(
       "hooks",
@@ -79,8 +79,8 @@ const structure = [
         "common",
         file("use-local-storage.ts"),
         file("use-debounce.ts"),
-        file("use-previous.ts")
-      )
+        file("use-previous.ts"),
+      ),
     ),
     folder(
       "styles",
@@ -90,9 +90,9 @@ const structure = [
         "components",
         file("button.module.css"),
         file("form.module.css"),
-        file("layout.module.css")
-      )
-    )
+        file("layout.module.css"),
+      ),
+    ),
   ),
   folder(
     "tests",
@@ -101,16 +101,12 @@ const structure = [
       "unit",
       file("utils.test.ts"),
       file("components.test.tsx"),
-      folder(
-        "api",
-        file("client.test.ts"),
-        file("services.test.ts")
-      )
-    )
+      folder("api", file("client.test.ts"), file("services.test.ts")),
+    ),
   ),
   file("package.json"),
   file("tsconfig.json"),
-  file("README.md")
+  file("README.md"),
 ];
 
 function sortChildren(node: Entry): Entry {
@@ -161,7 +157,7 @@ function VSCodeDemoPage() {
     return (
       <div className={styles.root}>
         <aside className={styles.sidebar}>
-          <div style={{ padding: '1rem', color: 'rgb(95, 122, 135)' }}>
+          <div style={{ padding: "1rem", color: "rgb(95, 122, 135)" }}>
             Loading...
           </div>
         </aside>
@@ -198,10 +194,11 @@ function VSCodeDemoPage() {
         <div className={styles.content}>
           <h1>VS Code Sticky Scroll Demo</h1>
           <p>
-            This demo showcases the <strong>sticky scroll</strong> feature, inspired by VS Code&apos;s implementation.
-            Parent folder hierarchy stays visible while scrolling through deeply nested structures.
+            This demo showcases the <strong>sticky scroll</strong> feature,
+            inspired by VS Code&apos;s implementation. Parent folder hierarchy
+            stays visible while scrolling through deeply nested structures.
           </p>
-          
+
           <h2>🎯 Features</h2>
           <ul>
             <li>Folder hierarchy remains visible while scrolling</li>
@@ -213,8 +210,9 @@ function VSCodeDemoPage() {
 
           <h2>✨ Sticky Scroll Active</h2>
           <p>
-            The sticky scroll feature is now active! Scroll through the file tree on the left
-            and watch how parent folders stay at the top for easy navigation context.
+            The sticky scroll feature is now active! Scroll through the file
+            tree on the left and watch how parent folders stay at the top for
+            easy navigation context.
           </p>
 
           <h2>🚀 How to use</h2>
@@ -227,14 +225,21 @@ function VSCodeDemoPage() {
 
           <h2>📊 Current State</h2>
           <ul>
-            <li>Scroll Position: <code>{Math.round(scrollPosition)}px</code></li>
-            <li>Total Nodes: <code>{JSON.stringify(data).split('"id"').length - 1}</code></li>
-            <li>Max Sticky Nodes: <code>4</code></li>
+            <li>
+              Scroll Position: <code>{Math.round(scrollPosition)}px</code>
+            </li>
+            <li>
+              Total Nodes:{" "}
+              <code>{JSON.stringify(data).split('"id"').length - 1}</code>
+            </li>
+            <li>
+              Max Sticky Nodes: <code>4</code>
+            </li>
           </ul>
 
           <h2>💻 Code Example</h2>
           <pre className={styles.code}>
-{`<Tree
+            {`<Tree
   data={fileData}
   stickyScroll={true}
   stickyScrollMaxNodes={4}
