@@ -358,9 +358,6 @@ function StickyHeader({ node, index, rowHeight, tree }: StickyHeaderProps) {
 
   const rowStyle = {
     ...style,
-    background: "var(--vscode-editor-background, #1e1e1e)",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-    zIndex: 10,
   };
 
   const rowAttrs = {
