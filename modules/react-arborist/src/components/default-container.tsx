@@ -23,7 +23,7 @@ export function DefaultContainer() {
   const [stickyNodes, setStickyNodes] = useState<NodeApi<any>[]>([]);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Calculate sticky nodes from current scroll position
+  // Calculate sticky nodes using dynamic path replacement strategy
   const calculateStickyNodes = useCallback(
     (scrollOffset: number): NodeApi<any>[] => {
       if (
@@ -35,51 +35,70 @@ export function DefaultContainer() {
       }
 
       const maxNodes = tree.props.stickyScrollMaxNodes || 5;
+      const rowHeight = tree.rowHeight;
 
-      // Initial calculation without sticky compensation
-      let currentIndex = Math.floor(scrollOffset / tree.rowHeight);
-      let clampedIndex = Math.min(currentIndex, tree.visibleNodes.length - 1);
-      let currentNode = tree.visibleNodes[clampedIndex];
+      // Strategy: Find the first truly visible file node, then build its complete ancestor path
+      // IMPORTANT: Consider sticky height when calculating visible area
+      const currentStickyHeight = stickyNodes.length * rowHeight;
+      const actualVisibleStart = scrollOffset + currentStickyHeight;
+      const firstVisibleIndex = Math.floor(actualVisibleStart / rowHeight);
+      let firstVisibleNode = tree.visibleNodes[firstVisibleIndex];
 
-      if (!currentNode) return [];
+      console.log("Sticky-aware visibility calculation:", {
+        scrollOffset,
+        currentStickyHeight,
+        actualVisibleStart,
+        firstVisibleIndex,
+        totalNodes: tree.visibleNodes.length,
+      });
 
-      // Build initial path to determine sticky count needed
-      const buildPath = (node: NodeApi<any>): NodeApi<any>[] => {
-        const path: NodeApi<any>[] = [];
-        let n: NodeApi<any> | null = node;
-
-        while (n && !n.isRoot) {
-          if (n.isInternal) {
-            path.unshift(n);
-          }
-          n = n.parent;
-        }
-        return path.slice(-maxNodes);
-      };
-
-      let path = buildPath(currentNode);
-      
-      // If we have potential sticky nodes, recalculate with compensation
-      if (path.length > 0) {
-        const stickyHeight = path.length * tree.rowHeight;
-        const adjustedOffset = scrollOffset + stickyHeight;
-        const adjustedIndex = Math.floor(adjustedOffset / tree.rowHeight);
-        const adjustedClampedIndex = Math.min(adjustedIndex, tree.visibleNodes.length - 1);
-        
-        // Only use adjusted calculation if it gives us a different, valid node
-        if (adjustedIndex !== currentIndex && tree.visibleNodes[adjustedClampedIndex]) {
-          const adjustedNode = tree.visibleNodes[adjustedClampedIndex];
-          const adjustedPath = buildPath(adjustedNode);
-          
-          // Use adjusted path only if it's substantially different
-          if (adjustedPath.length !== path.length || 
-              adjustedPath[adjustedPath.length - 1]?.id !== path[path.length - 1]?.id) {
-            path = adjustedPath;
-          }
-        }
+      if (!firstVisibleNode) {
+        return [];
       }
 
-      return path;
+      // Find the first file (non-folder) node from the first visible position
+      let fileNodeIndex = firstVisibleIndex;
+      let fileNode = firstVisibleNode;
+
+      while (
+        fileNode &&
+        fileNode.isInternal &&
+        fileNodeIndex < tree.visibleNodes.length - 1
+      ) {
+        fileNodeIndex++;
+        fileNode = tree.visibleNodes[fileNodeIndex];
+      }
+
+      if (!fileNode || fileNode.isInternal) {
+        return [];
+      }
+
+      console.log("Found first visible file node:", {
+        scrollOffset,
+        currentStickyHeight,
+        actualVisibleStart,
+        firstVisibleIndex,
+        fileNodeIndex,
+        fileNode: fileNode.data,
+      });
+
+      // Build complete folder ancestor path from this file
+      const expandedPath: NodeApi<any>[] = [];
+      let currentNode: NodeApi<any> | null = fileNode.parent;
+
+      while (currentNode && !currentNode.isRoot) {
+        if (currentNode.isInternal) {
+          expandedPath.unshift(currentNode);
+        }
+        currentNode = currentNode.parent;
+      }
+
+      console.log(
+        "Complete expanded path:",
+        expandedPath.map((n) => n.data),
+      );
+
+      return expandedPath.slice(0, maxNodes);
     },
     [
       tree.props.stickyScroll,
@@ -369,6 +388,13 @@ interface StickyHeaderProps {
 }
 
 function StickyHeader({ node, index, rowHeight, tree }: StickyHeaderProps) {
+  const handleClick = () => {
+    // Scroll to the corresponding node in the tree
+    tree.scrollTo(node.id, "center");
+    // Focus the node for better UX
+    tree.focus(node);
+  };
+
   const style = {
     position: "absolute" as const,
     top: index * rowHeight,
@@ -382,6 +408,7 @@ function StickyHeader({ node, index, rowHeight, tree }: StickyHeaderProps) {
 
   const rowStyle = {
     ...style,
+    cursor: "pointer",
   };
 
   const rowAttrs = {
@@ -392,6 +419,7 @@ function StickyHeader({ node, index, rowHeight, tree }: StickyHeaderProps) {
     style: rowStyle,
     tabIndex: -1,
     className: "sticky-row",
+    onClick: handleClick,
   };
 
   const Node = tree.renderNode;
