@@ -44,7 +44,37 @@ cp README.md modules/react-arborist/README.md
 
 echo "🏷️  Updating version ($VERSION_TYPE)..."
 cd modules/react-arborist
-NEW_VERSION=$(npm version $VERSION_TYPE --no-git-tag-version)
+
+# Use yarn version instead of npm version in workspace environment
+if command -v yarn >/dev/null 2>&1; then
+  NEW_VERSION=$(yarn version $VERSION_TYPE --no-git-tag-version 2>/dev/null | grep "New version" | cut -d' ' -f3 || echo "")
+  if [ -z "$NEW_VERSION" ]; then
+    # Fallback: manually update version using node
+    CURRENT_VERSION=$(node -p "require('./package.json').version")
+    case $VERSION_TYPE in
+      major)
+        NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print ($1+1)".0.0"}')
+        ;;
+      minor) 
+        NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."($2+1)".0"}')
+        ;;
+      patch)
+        NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2"."($3+1)}')
+        ;;
+    esac
+    # Update package.json manually
+    node -e "
+    const fs = require('fs');
+    const pkg = require('./package.json');
+    pkg.version = '$NEW_VERSION';
+    fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+    "
+    NEW_VERSION="v$NEW_VERSION"
+  fi
+else
+  NEW_VERSION=$(npm version $VERSION_TYPE --no-git-tag-version)
+fi
+
 echo "New version: $NEW_VERSION"
 cd ../..
 
