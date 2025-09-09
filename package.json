@@ -12,7 +12,7 @@
     "clean": "yarn workspace @byted/react-arborist clean",
     "showcase": "yarn workspace showcase start",
     "start": "run-s clean build-lib && run-p watch showcase",
-    "publish": "sh bin/publish"
+    "publish": "sh bin/publish --push"
   },
   "private": true,
   "packageManager": "yarn@4.0.2",

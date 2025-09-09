@@ -1,5 +1,76 @@
 #!/bin/sh
 
+set -e  # Exit on error
+
+# Parse arguments
+VERSION_TYPE="patch"  # Default to patch version
+PUSH_TAG=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --version)
+      VERSION_TYPE="$2"
+      shift 2
+      ;;
+    --major)
+      VERSION_TYPE="major"
+      shift
+      ;;
+    --minor) 
+      VERSION_TYPE="minor"
+      shift
+      ;;
+    --patch)
+      VERSION_TYPE="patch"
+      shift
+      ;;
+    --push)
+      PUSH_TAG=true
+      shift
+      ;;
+    *)
+      # Pass other arguments to npm publish
+      NPM_ARGS="$NPM_ARGS $1"
+      shift
+      ;;
+  esac
+done
+
+echo "📦 Building project..."
 yarn build
+
+echo "📋 Copying README..."
 cp README.md modules/react-arborist/README.md
-yarn workspace react-arborist npm publish $@
+
+echo "🏷️  Updating version ($VERSION_TYPE)..."
+cd modules/react-arborist
+NEW_VERSION=$(npm version $VERSION_TYPE --no-git-tag-version)
+echo "New version: $NEW_VERSION"
+cd ../..
+
+echo "📝 Committing version bump..."
+git add modules/react-arborist/package.json
+git commit -m "chore: bump version to $NEW_VERSION
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+echo "🏷️  Creating git tag..."
+git tag "$NEW_VERSION"
+
+if [ "$PUSH_TAG" = true ]; then
+  echo "📤 Pushing changes and tag to remote..."
+  git push origin main
+  git push origin "$NEW_VERSION"
+fi
+
+echo "🚀 Publishing to npm..."
+yarn workspace react-arborist npm publish $NPM_ARGS
+
+echo "✅ Published $NEW_VERSION successfully!"
+echo "📋 Next steps:"
+echo "   - Check npm: https://www.npmjs.com/package/@byted/react-arborist"
+if [ "$PUSH_TAG" = false ]; then
+  echo "   - Push changes: git push origin main && git push origin $NEW_VERSION"
+fi
