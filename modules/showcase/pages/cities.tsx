@@ -1,6 +1,11 @@
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
-import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
+import {
+  NodeApi,
+  NodeRendererProps,
+  Tree,
+  TreeApi,
+} from "@byted/react-arborist";
 import styles from "../styles/cities.module.css";
 import { cities } from "../data/cities";
 import { BsMapFill, BsMap, BsGeo, BsGeoFill } from "react-icons/bs";
