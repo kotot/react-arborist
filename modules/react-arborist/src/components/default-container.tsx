@@ -23,9 +23,9 @@ export function DefaultContainer() {
   const [stickyNodes, setStickyNodes] = useState<NodeApi<any>[]>([]);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Calculate sticky nodes using dynamic path replacement strategy
-  const calculateStickyNodes = useCallback(
-    (scrollOffset: number): NodeApi<any>[] => {
+  // Helper function to calculate sticky nodes with a specific sticky offset
+  const calculateStickyNodesWithOffset = useCallback(
+    (scrollOffset: number, stickyOffset: number): NodeApi<any>[] => {
       if (
         !tree.props.stickyScroll ||
         !tree.visibleNodes.length ||
@@ -37,20 +37,10 @@ export function DefaultContainer() {
       const maxNodes = tree.props.stickyScrollMaxNodes || 5;
       const rowHeight = tree.rowHeight;
 
-      // Strategy: Find the first truly visible file node, then build its complete ancestor path
-      // IMPORTANT: Consider sticky height when calculating visible area
-      const currentStickyHeight = stickyNodes.length * rowHeight;
-      const actualVisibleStart = scrollOffset + currentStickyHeight;
+      // Calculate the actual visible area considering sticky offset
+      const actualVisibleStart = scrollOffset + stickyOffset;
       const firstVisibleIndex = Math.floor(actualVisibleStart / rowHeight);
       let firstVisibleNode = tree.visibleNodes[firstVisibleIndex];
-
-      console.log("Sticky-aware visibility calculation:", {
-        scrollOffset,
-        currentStickyHeight,
-        actualVisibleStart,
-        firstVisibleIndex,
-        totalNodes: tree.visibleNodes.length,
-      });
 
       if (!firstVisibleNode) {
         return [];
@@ -73,15 +63,6 @@ export function DefaultContainer() {
         return [];
       }
 
-      console.log("Found first visible file node:", {
-        scrollOffset,
-        currentStickyHeight,
-        actualVisibleStart,
-        firstVisibleIndex,
-        fileNodeIndex,
-        fileNode: fileNode.data,
-      });
-
       // Build complete folder ancestor path from this file
       const expandedPath: NodeApi<any>[] = [];
       let currentNode: NodeApi<any> | null = fileNode.parent;
@@ -93,11 +74,6 @@ export function DefaultContainer() {
         currentNode = currentNode.parent;
       }
 
-      console.log(
-        "Complete expanded path:",
-        expandedPath.map((n) => n.data),
-      );
-
       return expandedPath.slice(0, maxNodes);
     },
     [
@@ -106,6 +82,45 @@ export function DefaultContainer() {
       tree.rowHeight,
       tree.props.stickyScrollMaxNodes,
     ],
+  );
+
+  // Calculate sticky nodes using stabilized algorithm to prevent flickering
+  const calculateStickyNodes = useCallback(
+    (scrollOffset: number): NodeApi<any>[] => {
+      const rowHeight = tree.rowHeight;
+
+      // First pass: calculate assuming no sticky headers
+      const firstPass = calculateStickyNodesWithOffset(scrollOffset, 0);
+      
+      // Second pass: calculate with the height from first pass
+      const firstPassHeight = firstPass.length * rowHeight;
+      const secondPass = calculateStickyNodesWithOffset(scrollOffset, firstPassHeight);
+      
+      // If results are stable (same length), use second pass
+      if (firstPass.length === secondPass.length) {
+        console.log("Stable sticky calculation:", {
+          scrollOffset,
+          stickyCount: secondPass.length,
+          stickyHeight: secondPass.length * rowHeight,
+        });
+        return secondPass;
+      }
+      
+      // Third pass: try to stabilize with second pass height
+      const secondPassHeight = secondPass.length * rowHeight;
+      const thirdPass = calculateStickyNodesWithOffset(scrollOffset, secondPassHeight);
+      
+      console.log("Stabilized sticky calculation:", {
+        scrollOffset,
+        firstPassCount: firstPass.length,
+        secondPassCount: secondPass.length,
+        thirdPassCount: thirdPass.length,
+        finalHeight: thirdPass.length * rowHeight,
+      });
+      
+      return thirdPass;
+    },
+    [tree.rowHeight, calculateStickyNodesWithOffset],
   );
 
   // Handle scroll events
@@ -117,11 +132,11 @@ export function DefaultContainer() {
           clearTimeout(scrollTimeoutRef.current);
         }
 
-        // Update sticky nodes with debounce
+        // Update sticky nodes with debounce - increased to 32ms for better stability
         scrollTimeoutRef.current = setTimeout(() => {
           const nodes = calculateStickyNodes(props.scrollOffset);
           setStickyNodes(nodes);
-        }, 16); // ~60fps
+        }, 32); // ~30fps - balanced performance and smoothness
       }
 
       // Call original onScroll handler
