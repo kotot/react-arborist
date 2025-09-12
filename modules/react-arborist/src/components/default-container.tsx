@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { FixedSizeList } from "react-window";
 import { useDataUpdates, useTreeApi } from "../context";
 import { focusNextElement, focusPrevElement } from "../utils";
@@ -6,9 +6,67 @@ import { ListOuterElement } from "./list-outer-element";
 import { ListInnerElement } from "./list-inner-element";
 import { RowContainer } from "./row-container";
 import type { NodeApi } from "../interfaces/node-api";
+import { ROOT_ID } from "../data/create-root";
 
 let focusSearchTerm = "";
 let timeoutId: any = null;
+// Sticky scroll state
+interface StickyScrollNode {
+  node: NodeApi<any>;
+  position: number;
+  height: number;
+  startIndex: number;
+  endIndex: number;
+}
+
+class StickyScrollState {
+  constructor(readonly stickyNodes: StickyScrollNode[] = []) {}
+
+  get count(): number {
+    return this.stickyNodes.length;
+  }
+
+  // 判断最后一个粘性节点是否被部分遮挡（被子项"推上去"）
+  lastNodePartiallyVisible(): boolean {
+    if (this.count === 0) {
+      return false;
+    }
+
+    const lastStickyNode = this.stickyNodes[this.count - 1];
+    if (this.count === 1) {
+      return lastStickyNode.position !== 0;
+    }
+
+    const secondLastStickyNode = this.stickyNodes[this.count - 2];
+    return (
+      secondLastStickyNode.position + secondLastStickyNode.height !==
+      lastStickyNode.position
+    );
+  }
+
+  // 检测是否只有位置变化而节点集合不变（用于动画优化）
+  animationStateChanged(previousState: StickyScrollState): boolean {
+    // 简化实现：暂时返回false
+    return false;
+  }
+
+  // 比较两个状态是否相等
+  equal(state: StickyScrollState): boolean {
+    if (this.count !== state.count) {
+      return false;
+    }
+    return this.stickyNodes.every(
+      (node, i) =>
+        node.node === state.stickyNodes[i].node &&
+        node.position === state.stickyNodes[i].position,
+    );
+  }
+
+  // 检查某个节点是否在sticky节点中
+  contains(node: NodeApi<any>): boolean {
+    return this.stickyNodes.some((stickyNode) => stickyNode.node === node);
+  }
+}
 
 /**
  * All these keyboard shortcuts seem like they should be configurable.
@@ -19,133 +77,305 @@ export function DefaultContainer() {
   useDataUpdates();
   const tree = useTreeApi();
 
-  // Sticky scroll state
+  // Cleanup scroll timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const [stickyNodes, setStickyNodes] = useState<NodeApi<any>[]>([]);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Helper function to calculate sticky nodes with a specific sticky offset
-  const calculateStickyNodesWithOffset = useCallback(
-    (scrollOffset: number, stickyOffset: number): NodeApi<any>[] => {
+  // 获取当前视窗内的节点
+  const getNodesInViewport = (): NodeApi<any>[] => {
+    return tree.visibleNodes.slice(
+      tree.visibleStartIndex,
+      tree.visibleStopIndex + 1,
+    );
+  };
+
+  // 寻找第一个可见节点（相对于视窗）
+  const getNodeAtHeight = (height: number): NodeApi<any> | undefined => {
+    const rowHeight = tree.rowHeight;
+    const relativeIndex = Math.floor(height / rowHeight);
+
+    // 转换为 visibleNodes 数组中的绝对索引
+    const absoluteIndex = tree.visibleStartIndex + relativeIndex;
+
+    if (
+      absoluteIndex < tree.visibleStartIndex ||
+      absoluteIndex > tree.visibleStopIndex ||
+      absoluteIndex >= tree.visibleNodes.length
+    ) {
+      return undefined;
+    }
+    return tree.visibleNodes[absoluteIndex];
+  };
+
+  /**
+   * 找到node的某个祖先，这个祖先是previousAncestor的直接子节点
+   * 如果previousAncestor为undefined，返回根节点的直接子节点
+   *
+   * 例如：树结构 root -> A -> B -> C -> node
+   * - 如果previousAncestor是A，返回B（B是A的子节点）
+   * - 如果previousAncestor是undefined，返回A（根的子节点）
+   */
+  const getAncestorUnderPrevious = (
+    node: NodeApi<any>,
+    previousAncestor: NodeApi<any> | undefined = undefined,
+  ): NodeApi<any> | undefined => {
+    let currentAncestor: NodeApi<any> = node;
+    let parentOfCurrentAncestor: NodeApi<any> | null = currentAncestor.parent;
+    if (parentOfCurrentAncestor?.id === ROOT_ID) {
+      parentOfCurrentAncestor = null;
+    }
+    while (parentOfCurrentAncestor) {
+      if (parentOfCurrentAncestor.id === previousAncestor?.id) {
+        return currentAncestor;
+      }
+      currentAncestor = parentOfCurrentAncestor;
+      parentOfCurrentAncestor = currentAncestor.parent;
+      if (parentOfCurrentAncestor?.id === ROOT_ID) {
+        parentOfCurrentAncestor = null;
+      }
+    }
+
+    if (previousAncestor === undefined) {
+      return currentAncestor;
+    }
+
+    return undefined;
+  };
+
+  const calculateStickyNodePosition = (
+    lastDescendantIndex: number,
+    stickyRowPositionTop: number,
+    stickyNodeHeight: number,
+  ): number => {
+    // 简化实现：暂时直接返回默认位置
+    // 完整实现需要计算最后一个子节点的位置，判断是否需要"推挤"效果
+
+    // 在真实实现中，这里会：
+    // 1. 获取最后一个子节点的相对位置
+    // 2. 计算子节点的底部位置
+    // 3. 如果sticky节点会覆盖子节点，调整位置（推挤效果）
+
+    return stickyRowPositionTop;
+  };
+
+  const createStickyScrollNode = (
+    node: NodeApi<any>,
+    stickyNodesHeight: number,
+  ): StickyScrollNode => {
+    const rowHeight = tree.rowHeight;
+    const height = rowHeight; // Assuming each node has the same height as rowHeight
+
+    // Find the node's index in visibleNodes
+    let startIndex = -1;
+    for (let i = 0; i < tree.visibleNodes.length; i++) {
+      if (tree.visibleNodes[i] === node) {
+        startIndex = i;
+        break;
+      }
+    }
+
+    const endIndex = startIndex; // For now, assume single node
+
+    // 使用calculateStickyNodePosition计算位置
+    const position = calculateStickyNodePosition(
+      endIndex,
+      stickyNodesHeight,
+      height,
+    );
+
+    return {
+      node,
+      position,
+      height,
+      startIndex,
+      endIndex,
+    };
+  };
+
+  const nodeIsUncollapsedParent = (node: NodeApi<any>): boolean => {
+    return (
+      node.isInternal &&
+      node.isOpen &&
+      !!node.children &&
+      node.children.length > 0
+    );
+  };
+
+  const nodeTopAlignsWithStickyNodesBottom = (
+    node: NodeApi<any>,
+    stickyNodesHeight: number,
+  ): boolean => {
+    // Simplified implementation: always return false for now
+    return false;
+  };
+
+  const getNextStickyNode = (
+    firstVisibleNodeUnderWidget: NodeApi<any>,
+    previousStickyNode: NodeApi<any> | undefined,
+    stickyNodesHeight: number,
+  ): StickyScrollNode | undefined => {
+    const nextStickyNode = getAncestorUnderPrevious(
+      firstVisibleNodeUnderWidget,
+      previousStickyNode,
+    );
+    if (!nextStickyNode) {
+      return undefined;
+    }
+
+    if (nextStickyNode === firstVisibleNodeUnderWidget) {
+      // 该行是叶子（文件）或折叠的目录（没有可见子项）
+      if (!nodeIsUncollapsedParent(firstVisibleNodeUnderWidget)) {
+        return undefined;
+      }
+      // 节点顶部与粘性区底部对齐
       if (
-        !tree.props.stickyScroll ||
-        !tree.visibleNodes.length ||
-        scrollOffset <= 0
+        nodeTopAlignsWithStickyNodesBottom(
+          firstVisibleNodeUnderWidget,
+          stickyNodesHeight,
+        )
       ) {
-        return [];
+        return undefined;
       }
+    }
 
-      const maxNodes = tree.props.stickyScrollMaxNodes || 5;
-      const rowHeight = tree.rowHeight;
+    return createStickyScrollNode(nextStickyNode, stickyNodesHeight);
+  };
 
-      // Calculate the actual visible area considering sticky offset
-      const actualVisibleStart = scrollOffset + stickyOffset;
-      const firstVisibleIndex = Math.floor(actualVisibleStart / rowHeight);
-      let firstVisibleNode = tree.visibleNodes[firstVisibleIndex];
+  const constrainStickyNodes = (
+    stickyNodes: StickyScrollNode[],
+  ): StickyScrollNode[] => {
+    if (stickyNodes.length === 0) {
+      return [];
+    }
 
-      if (!firstVisibleNode) {
-        return [];
+    const maxNodes = tree.props.stickyScrollMaxNodes || 5;
+    const maxWidgetViewRatio = 0.4;
+    const maximumStickyWidgetHeight = tree.height * maxWidgetViewRatio;
+
+    // 从前往后遍历，检查每个节点
+    for (let i = 0; i < stickyNodes.length; i++) {
+      const stickyNode = stickyNodes[i];
+      const stickyNodeBottom = stickyNode.position + stickyNode.height;
+
+      // 如果超过高度限制或数量限制，返回前i个节点
+      if (stickyNodeBottom > maximumStickyWidgetHeight || i >= maxNodes) {
+        return stickyNodes.slice(0, i);
       }
+    }
 
-      // Find the first file (non-folder) node from the first visible position
-      let fileNodeIndex = firstVisibleIndex;
-      let fileNode = firstVisibleNode;
+    return stickyNodes;
+  };
 
-      while (
-        fileNode &&
-        fileNode.isInternal &&
-        fileNodeIndex < tree.visibleNodes.length - 1
-      ) {
-        fileNodeIndex++;
-        fileNode = tree.visibleNodes[fileNodeIndex];
-      }
+  const getNextVisibleNode = (
+    previousStickyNode: StickyScrollNode,
+  ): NodeApi<any> | undefined => {
+    return getNodeAtHeight(
+      previousStickyNode.position + previousStickyNode.height,
+    );
+  };
 
-      if (!fileNode || fileNode.isInternal) {
-        return [];
-      }
+  const findStickyState = (
+    firstVisibleNode: NodeApi<any> | undefined,
+  ): StickyScrollState | undefined => {
+    if (!firstVisibleNode) {
+      return undefined;
+    }
 
-      // Build complete folder ancestor path from this file
-      const expandedPath: NodeApi<any>[] = [];
-      let currentNode: NodeApi<any> | null = fileNode.parent;
+    const maxNodes = tree.props.stickyScrollMaxNodes || 5;
+    const stickyNodes: StickyScrollNode[] = [];
+    let firstVisibleNodeUnderWidget: NodeApi<any> | undefined =
+      firstVisibleNode;
+    let stickyNodesHeight = 0;
 
-      while (currentNode && !currentNode.isRoot) {
-        if (currentNode.isInternal) {
-          expandedPath.unshift(currentNode);
+    let nextStickyNode = getNextStickyNode(
+      firstVisibleNodeUnderWidget,
+      undefined,
+      stickyNodesHeight,
+    );
+    while (nextStickyNode) {
+      stickyNodes.push(nextStickyNode);
+      stickyNodesHeight += nextStickyNode.height;
+
+      if (stickyNodes.length <= maxNodes) {
+        firstVisibleNodeUnderWidget = getNextVisibleNode(nextStickyNode);
+        if (!firstVisibleNodeUnderWidget) {
+          break;
         }
-        currentNode = currentNode.parent;
       }
 
-      return expandedPath.slice(0, maxNodes);
-    },
-    [
-      tree.props.stickyScroll,
-      tree.visibleNodes,
-      tree.rowHeight,
-      tree.props.stickyScrollMaxNodes,
-    ],
-  );
+      nextStickyNode = getNextStickyNode(
+        firstVisibleNodeUnderWidget,
+        nextStickyNode.node,
+        stickyNodesHeight,
+      );
+      console.log("🚀 ~ findStickyState ~ nextStickyNode:", nextStickyNode);
+    }
+    console.log("🚀 ~ findStickyState ~ stickyNodes:", stickyNodes);
+    const constrainedStickyNodes = constrainStickyNodes(stickyNodes);
+    return constrainedStickyNodes.length
+      ? new StickyScrollState(constrainedStickyNodes)
+      : undefined;
+  };
 
-  // Calculate sticky nodes using stabilized algorithm to prevent flickering
-  const calculateStickyNodes = useCallback(
-    (scrollOffset: number): NodeApi<any>[] => {
-      const rowHeight = tree.rowHeight;
+  // Calculate sticky nodes - simplified implementation like VSCode
+  const calculateStickyNodes = (scrollOffset: number): NodeApi<any>[] => {
+    if (
+      !tree.props.stickyScroll ||
+      tree.visibleNodes.length === 0 ||
+      scrollOffset <= 0
+    ) {
+      return [];
+    }
 
-      // First pass: calculate assuming no sticky headers
-      const firstPass = calculateStickyNodesWithOffset(scrollOffset, 0);
-      
-      // Second pass: calculate with the height from first pass
-      const firstPassHeight = firstPass.length * rowHeight;
-      const secondPass = calculateStickyNodesWithOffset(scrollOffset, firstPassHeight);
-      
-      // If results are stable (same length), use second pass
-      if (firstPass.length === secondPass.length) {
-        console.log("Stable sticky calculation:", {
-          scrollOffset,
-          stickyCount: secondPass.length,
-          stickyHeight: secondPass.length * rowHeight,
-        });
-        return secondPass;
-      }
-      
-      // Third pass: try to stabilize with second pass height
-      const secondPassHeight = secondPass.length * rowHeight;
-      const thirdPass = calculateStickyNodesWithOffset(scrollOffset, secondPassHeight);
-      
-      console.log("Stabilized sticky calculation:", {
-        scrollOffset,
-        firstPassCount: firstPass.length,
-        secondPassCount: secondPass.length,
-        thirdPassCount: thirdPass.length,
-        finalHeight: thirdPass.length * rowHeight,
-      });
-      
-      return thirdPass;
-    },
-    [tree.rowHeight, calculateStickyNodesWithOffset],
-  );
+    // 直接获取第一个可见节点
+    const firstVisibleNode = getNodeAtHeight(scrollOffset);
+
+    // 如果没有可见节点或是虚拟根节点，返回空
+    if (!firstVisibleNode) {
+      return [];
+    }
+
+    // 获取sticky状态
+    const stickyState = findStickyState(firstVisibleNode);
+
+    // 如果没有sticky状态，返回空
+    if (!stickyState) {
+      return [];
+    }
+
+    // 返回sticky节点数组
+    return stickyState.stickyNodes.map((stickyNode) => stickyNode.node);
+  };
 
   // Handle scroll events
-  const handleScroll = useCallback(
-    (props: any) => {
-      if (tree.props.stickyScroll) {
-        // Clear previous timeout
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
-
-        // Update sticky nodes with debounce - increased to 32ms for better stability
-        scrollTimeoutRef.current = setTimeout(() => {
-          const nodes = calculateStickyNodes(props.scrollOffset);
-          setStickyNodes(nodes);
-        }, 32); // ~30fps - balanced performance and smoothness
+  const handleScroll = (props: any) => {
+    if (tree.props.stickyScroll) {
+      // Clear previous timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
       }
 
-      // Call original onScroll handler
-      if (tree.props.onScroll) {
-        tree.props.onScroll(props);
-      }
-    },
-    [tree.props.stickyScroll, calculateStickyNodes, tree.props.onScroll],
-  );
+      // Update sticky nodes with debounce - 60fps
+      scrollTimeoutRef.current = setTimeout(() => {
+        const nodes = calculateStickyNodes(props.scrollOffset);
+        setStickyNodes(nodes);
+      }, 16);
+    }
+
+    // Call original onScroll handler
+    if (tree.props.onScroll) {
+      tree.props.onScroll(props);
+    }
+  };
+
   return (
     <div
       role="tree"
@@ -349,29 +579,24 @@ export function DefaultContainer() {
       }}
     >
       {/* Sticky Headers Overlay */}
-      {tree.props.stickyScroll && stickyNodes.length > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 10,
-            pointerEvents: "auto",
-            maxHeight: tree.height,
-          }}
-        >
-          {stickyNodes.map((node, index) => (
-            <StickyHeader
-              key={node.id}
-              node={node}
-              index={index}
-              rowHeight={tree.rowHeight}
-              tree={tree}
-            />
-          ))}
-        </div>
-      )}
+      {tree.props.stickyScroll &&
+        stickyNodes.length > 0 &&
+        (() => {
+          // 创建StickyScrollState来传递给StickyHeader
+          const stickyScrollNodes: StickyScrollNode[] = stickyNodes.map(
+            (node, index) => ({
+              node,
+              position: index * tree.rowHeight,
+              height: tree.rowHeight,
+              startIndex: index,
+              endIndex: index,
+            }),
+          );
+
+          const stickyState = new StickyScrollState(stickyScrollNodes);
+
+          return <StickyHeader stickyState={stickyState} />;
+        })()}
 
       {/* @ts-ignore */}
       <FixedSizeList
@@ -396,53 +621,99 @@ export function DefaultContainer() {
 }
 
 interface StickyHeaderProps {
-  node: NodeApi<any>;
-  index: number;
-  rowHeight: number;
-  tree: any;
+  stickyState: StickyScrollState | undefined;
 }
 
-function StickyHeader({ node, index, rowHeight, tree }: StickyHeaderProps) {
-  const handleClick = () => {
+function StickyHeader({ stickyState }: StickyHeaderProps) {
+  const tree = useTreeApi();
+
+  // 如果没有sticky状态或节点数为0，不渲染
+  if (!stickyState || stickyState.count === 0) {
+    return null;
+  }
+
+  const handleNodeClick = (node: NodeApi<any>) => {
     // Scroll to the corresponding node in the tree
     tree.scrollTo(node.id, "center");
     // Focus the node for better UX
     tree.focus(node);
   };
 
-  const style = {
-    position: "absolute" as const,
-    top: index * rowHeight,
-    left: 0,
-    width: "100%",
-    height: rowHeight,
-  };
-
-  const indent = tree.indent * node.level;
-  const nodeStyle = { paddingLeft: indent };
-
-  const rowStyle = {
-    ...style,
-    cursor: "pointer",
-  };
-
-  const rowAttrs = {
-    role: "treeitem",
-    "aria-level": node.level + 1,
-    "aria-selected": node.isSelected,
-    "aria-expanded": node.isOpen,
-    style: rowStyle,
-    tabIndex: -1,
-    className: "sticky-row",
-    onClick: handleClick,
-  };
+  // 计算总高度
+  const lastNode = stickyState.stickyNodes[stickyState.count - 1];
+  const totalHeight = lastNode.position + lastNode.height;
 
   const Node = tree.renderNode;
   const Row = tree.renderRow;
 
   return (
-    <Row node={node} innerRef={() => {}} attrs={rowAttrs}>
-      <Node node={node} tree={tree} style={nodeStyle} dragHandle={() => {}} />
-    </Row>
+    <div
+      className="sticky-scroll-container"
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 100,
+        right: 0,
+        height: totalHeight,
+        backgroundColor: "#f5f5f5",
+        borderBottom: "1px solid #e0e0e0",
+        zIndex: 100,
+        overflow: "hidden",
+      }}
+    >
+      {stickyState.stickyNodes.map((stickyNode, index) => {
+        const node = stickyNode.node;
+        const indent = node.level * tree.indent;
+
+        const rowAttrs = {
+          role: "treeitem",
+          "aria-level": node.level + 1,
+          "aria-selected": node.isSelected,
+          "aria-expanded": node.isOpen,
+          tabIndex: -1,
+          className: "sticky-row",
+          onClick: () => handleNodeClick(node),
+          style: {
+            position: "absolute" as const,
+            top: stickyNode.position,
+            left: 0,
+            right: 0,
+            height: stickyNode.height,
+            display: "flex",
+            alignItems: "center",
+            backgroundColor:
+              index === stickyState.count - 1 ? "#ebebeb" : "#f5f5f5",
+            cursor: "pointer",
+          },
+        };
+
+        const nodeStyle = { paddingLeft: indent };
+
+        return (
+          <Row key={node.id} node={node} innerRef={() => {}} attrs={rowAttrs}>
+            <Node
+              node={node}
+              tree={tree}
+              style={nodeStyle}
+              dragHandle={() => {}}
+            />
+          </Row>
+        );
+      })}
+
+      {/* 阴影效果 */}
+      <div
+        className="sticky-scroll-shadow"
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "3px",
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.1), transparent)",
+        }}
+      />
+    </div>
   );
 }
