@@ -108,7 +108,79 @@ const structure = [
   file("tsconfig.json"),
   file("README.md"),
 ];
-
+const structure2 = [
+  folder(
+    "src",
+    file("index.ts"),
+    folder("components"),
+    folder(
+      "lib",
+      file("index.ts"),
+      file("worker.ts"),
+      file("utils.ts"),
+      file("model.ts"),
+      folder(
+        "api",
+        file("client.ts"),
+        file("auth.ts"),
+        file("endpoints.ts"),
+        folder(
+          "services",
+          file("user-service.ts"),
+          file("data-service.ts"),
+          file("file-service.ts"),
+        ),
+      ),
+    ),
+    folder(
+      "hooks",
+      file("use-auth.ts"),
+      file("use-data.ts"),
+      file("use-api.ts"),
+      folder(
+        "common",
+        file("use-local-storage.ts"),
+        file("use-debounce.ts"),
+        file("use-previous.ts"),
+      ),
+    ),
+    folder(
+      "styles",
+      file("globals.css"),
+      file("variables.css"),
+      folder(
+        "components",
+        file("button.module.css"),
+        file("form.module.css"),
+        file("layout.module.css"),
+      ),
+    ),
+  ),
+  folder(
+    "tests",
+    file("setup.ts"),
+    folder(
+      "unit",
+      file("utils.test.ts"),
+      file("components.test.tsx"),
+      folder("api", file("client.test.ts"), file("services.test.ts")),
+    ),
+  ),
+  file("package.json"),
+  file("tsconfig.json"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+  file("README.md"),
+];
 function sortChildren(node: Entry): Entry {
   if (!node.children) return node;
   const copy = [...node.children];
@@ -146,8 +218,9 @@ function VSCodeDemoPage() {
   const { width, height, ref } = useResizeObserver();
   const [scrollPosition, setScrollPosition] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
 
-  const data = useTreeSort(structure);
+  const data = useTreeSort(structure2);
 
   useEffect(() => {
     setMounted(true);
@@ -155,7 +228,12 @@ function VSCodeDemoPage() {
 
   if (!mounted) {
     return (
-      <div className={styles.root}>
+      <div
+        className={clsx(
+          styles.root,
+          theme === "light" ? styles.light : styles.dark,
+        )}
+      >
         <aside className={styles.sidebar}>
           <div style={{ padding: "1rem", color: "rgb(95, 122, 135)" }}>
             Loading...
@@ -172,7 +250,12 @@ function VSCodeDemoPage() {
   }
 
   return (
-    <div className={styles.root}>
+    <div
+      className={clsx(
+        styles.root,
+        theme === "light" ? styles.light : styles.dark,
+      )}
+    >
       <aside className={styles.sidebar} ref={ref}>
         <Tree
           data={data}
@@ -192,6 +275,19 @@ function VSCodeDemoPage() {
       </aside>
       <main className={styles.main}>
         <div className={styles.content}>
+          <div className={styles.themeToggle}>
+            <button
+              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+              aria-pressed={theme === "light"}
+              title={
+                theme === "dark"
+                  ? "Switch to Light Theme"
+                  : "Switch to Dark Theme"
+              }
+            >
+              Switch to {theme === "dark" ? "Light" : "Dark"} Theme
+            </button>
+          </div>
           <h1>VS Code Sticky Scroll Demo</h1>
           <p>
             This demo showcases the <strong>sticky scroll</strong> feature,
@@ -203,7 +299,7 @@ function VSCodeDemoPage() {
           <ul>
             <li>Folder hierarchy remains visible while scrolling</li>
             <li>Maximum 4 sticky levels to avoid clutter</li>
-            <li>VS Code-style dark theme integration</li>
+            <li>VS Code-style dark and light themes</li>
             <li>Smooth 60fps scrolling performance</li>
             <li>Click sticky headers to toggle folders</li>
           </ul>

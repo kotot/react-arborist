@@ -6,6 +6,12 @@
   width: 100vw;
 }
 
+/* Theme scope helpers */
+.dark {
+}
+.light {
+}
+
 .node {
   font-size: 13px;
   display: grid;
@@ -20,10 +26,28 @@
   background: #192226;
   color: rgb(95, 122, 135);
 }
+.sidebar :global(.sticky-scroll-container) {
+  background: #192226;
+  color: rgb(95, 122, 135);
+}
+
+/* Light theme overrides */
+.light .sidebar {
+  background: #f3f3f3;
+  color: #333333;
+}
+.light .sidebar :global(.sticky-scroll-container) {
+  background: #f3f3f3;
+  color: #333333;
+}
 
 .main {
   background: #253238;
   overflow: auto;
+}
+
+.light .main {
+  background: #ffffff;
 }
 
 .content {
@@ -34,15 +58,27 @@
   line-height: 1.6;
 }
 
+.light .content {
+  color: #1f2937;
+}
+
 .content h1 {
   color: #80cbc4;
   margin-bottom: 1rem;
+}
+
+.light .content h1 {
+  color: #007acc;
 }
 
 .content h2 {
   color: #ffffff;
   margin-top: 2rem;
   margin-bottom: 0.5rem;
+}
+
+.light .content h2 {
+  color: #111111;
 }
 
 .content ul,
@@ -62,6 +98,11 @@
   font-size: 0.9em;
 }
 
+.light .content code {
+  background: #f5f5f5;
+  color: #007acc;
+}
+
 .code {
   background: #1e1e1e;
   color: #e8eaed;
@@ -74,6 +115,12 @@
   border: 1px solid #3c4043;
 }
 
+.light .code {
+  background: #f5f5f5;
+  color: #111111;
+  border: 1px solid #e5e7eb;
+}
+
 .node:global(.isInternal) svg {
   fill: #80cbc4;
 }
@@ -83,12 +130,28 @@
   fill: #3865bd;
 }
 
+.light .node:global(.isInternal) svg {
+  fill: #007acc;
+}
+
+.light .node:global(.isLeaf) svg {
+  fill: #007acc;
+}
+
 .node:hover {
   color: white;
 }
 
+.light .node:hover {
+  color: #000000;
+}
+
 .highlight {
   background: #062f4a;
+}
+
+.light .highlight {
+  background: #e6f7ff;
 }
 
 /* Sticky Scroll 样式定制 - VS Code 主题 */
@@ -120,4 +183,21 @@
   color: #80cbc4;
   opacity: 0.7;
   margin: 0 4px;
+}
+
+.sidebar :global(.sticky-row:hover) {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.light .sidebar :global(.sticky-row:hover) {
+  color: #000000;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Simple toggle placement */
+.themeToggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
 }
