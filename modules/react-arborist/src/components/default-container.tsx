@@ -500,6 +500,7 @@ export function DefaultContainer() {
         minWidth: 0,
         overflow: "hidden",
         position: "relative",
+        paddingRight: tree.props.stickyScroll ? "10px" : "0px",
       }}
       onContextMenu={tree.props.onContextMenu}
       onClick={tree.props.onClick}
@@ -711,9 +712,6 @@ export function DefaultContainer() {
         onScroll={handleScroll}
         onItemsRendered={tree.onItemsRendered.bind(tree)}
         ref={tree.list}
-        style={{
-          paddingRight: tree.props.stickyScroll ? "10px" : "0px",
-        }}
       >
         {RowContainer}
       </FixedSizeList>
@@ -754,7 +752,7 @@ function StickyHeader({ stickyState }: StickyHeaderProps) {
         // 稍微偏移一点点，才可以实现比较好的吸顶效果
         top: -1,
         left: 0,
-        right: "10px",
+        right: 0,
         height: totalHeight,
         zIndex: 1,
         overflow: "hidden",
@@ -786,7 +784,10 @@ function StickyHeader({ stickyState }: StickyHeaderProps) {
           },
         };
 
-        const nodeStyle = { paddingLeft: indent, width: "100%" };
+        const nodeStyle = {
+          paddingLeft: indent,
+          width: "100%",
+        };
 
         return (
           <Row key={node.id} node={node} innerRef={() => {}} attrs={rowAttrs}>
