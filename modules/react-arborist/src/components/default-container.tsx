@@ -500,7 +500,6 @@ export function DefaultContainer() {
         minWidth: 0,
         overflow: "hidden",
         position: "relative",
-        paddingRight: tree.props.stickyScroll ? "10px" : "0px",
       }}
       onContextMenu={tree.props.onContextMenu}
       onClick={tree.props.onClick}
