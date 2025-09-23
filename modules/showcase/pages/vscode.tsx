@@ -262,6 +262,7 @@ function VSCodeDemoPage() {
           width={width}
           height={height}
           rowHeight={22}
+          showIndentGuides
           stickyScroll={true}
           stickyScrollMaxNodes={4}
           onMove={() => {}}
