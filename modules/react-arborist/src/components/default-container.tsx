@@ -117,8 +117,7 @@ function StickyHeader({ stickyState }: StickyHeaderProps) {
       className="sticky-scroll-container"
       style={{
         position: "absolute",
-        // 稍微偏移一点点，才可以实现比较好的吸顶效果
-        top: -3,
+        top: 0,
         left: 0,
         right: 0,
         height: totalHeight,
