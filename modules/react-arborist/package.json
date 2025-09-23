@@ -1,6 +1,6 @@
 {
   "name": "@byted/react-arborist",
-  "version": "4.0.6",
+  "version": "4.0.7",
   "license": "MIT",
   "source": "src/index.ts",
   "main": "dist/main/index.js",
