@@ -56,11 +56,10 @@ export function IndentGuides<T>({ node, tree }: IndentGuidesProps<T>) {
         const left = index * indent;
         const center = indent / 2;
         const lineColor = segment.isCurrent ? DEFAULT_ACTIVE_COLOR : DEFAULT_COLOR;
-        const verticalHeight = segment.isCurrent && !segment.hasSiblingAfter ? "50%" : "100%";
         const verticalStyle: React.CSSProperties = {
           position: "absolute",
           top: 0,
-          height: verticalHeight,
+          bottom: segment.isCurrent && !segment.hasSiblingAfter ? "50%" : 0,
           left: left + center,
           width: LINE_WIDTH,
           backgroundColor: lineColor,
@@ -80,27 +79,12 @@ export function IndentGuides<T>({ node, tree }: IndentGuidesProps<T>) {
           borderRadius: LINE_WIDTH,
         };
 
-        const dotStyle: React.CSSProperties = {
-          position: "absolute",
-          top: "50%",
-          left: left + center,
-          width: LINE_WIDTH * 2,
-          height: LINE_WIDTH * 2,
-          backgroundColor: lineColor,
-          borderRadius: "50%",
-          transform: "translate(-50%, -50%)",
-          opacity: 0.8,
-        };
+        const shouldRenderVertical = segment.hasSiblingAfter || segment.isCurrent;
 
         return (
           <React.Fragment key={index}>
-            <div style={verticalStyle} />
-            {segment.isCurrent && indent > LINE_WIDTH ? (
-              <>
-                <div style={connectorStyle} />
-                <div style={dotStyle} />
-              </>
-            ) : null}
+            {shouldRenderVertical ? <div style={verticalStyle} /> : null}
+            {segment.isCurrent && indent > LINE_WIDTH ? <div style={connectorStyle} /> : null}
           </React.Fragment>
         );
       })}
