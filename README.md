@@ -229,6 +229,7 @@ function App() {
   return (
     <Tree
       data={data}
+      showIndentGuides
       /* The outer most element in the list */
       renderRow={MyRow}
       /* The "ghost" element that follows the mouse as you drag */
@@ -241,6 +242,25 @@ function App() {
     </Tree>
   );
 }
+```
+
+### Indent guides
+
+Enable `showIndentGuides` to render lightweight connector lines in the padding area
+before each node. The guides use CSS variables for customization:
+
+- `--ra-indent-guide-color` controls the color of inactive lines.
+- `--ra-indent-guide-active-color` controls the color of the connector attached to the current row.
+
+```css
+.my-tree {
+  --ra-indent-guide-color: rgba(99, 110, 123, 0.2);
+  --ra-indent-guide-active-color: rgba(99, 110, 123, 0.45);
+}
+```
+
+```tsx
+<Tree className="my-tree" showIndentGuides />
 ```
 
 ### Dynamic sizing
@@ -310,6 +330,7 @@ interface TreeProps<T> {
   disableMultiSelection?: boolean;
   disableEdit?: string | boolean | BoolFunc<T>;
   disableDrag?: string | boolean | BoolFunc<T>;
+  showIndentGuides?: boolean;
   disableDrop?:
     | string
     | boolean

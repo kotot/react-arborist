@@ -43,6 +43,7 @@ export interface TreeProps<T> {
   disableMultiSelection?: boolean;
   disableEdit?: string | boolean | BoolFunc<T>;
   disableDrag?: string | boolean | BoolFunc<T>;
+  showIndentGuides?: boolean;
   disableDrop?:
     | string
     | boolean

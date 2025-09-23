@@ -1,4 +1,4 @@
-import { CSSProperties, HTMLAttributes, ReactElement } from "react";
+import { CSSProperties, HTMLAttributes, ReactElement, ReactNode } from "react";
 import { IdObj } from "./utils";
 import { NodeApi } from "../interfaces/node-api";
 import { TreeApi } from "../interfaces/tree-api";
@@ -17,6 +17,7 @@ export type RowRendererProps<T> = {
   innerRef: (el: HTMLDivElement | null) => void;
   attrs: HTMLAttributes<any>;
   children: ReactElement;
+  guides?: ReactNode;
 };
 
 export type DragPreviewProps = {
