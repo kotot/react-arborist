@@ -1,93 +1,100 @@
-import React from "react";
+import { useMemo } from "react";
 import { NodeApi } from "../interfaces/node-api";
 import { TreeApi } from "../interfaces/tree-api";
-
-const DEFAULT_COLOR = "var(--ra-indent-guide-color, rgba(99, 110, 123, 0.35))";
-const DEFAULT_ACTIVE_COLOR = "var(--ra-indent-guide-active-color, rgba(99, 110, 123, 0.55))";
-const LINE_WIDTH = 1;
 
 type IndentGuidesProps<T> = {
   node: NodeApi<T>;
   tree: TreeApi<T>;
 };
 
-type Segment = {
-  hasSiblingAfter: boolean;
-  isCurrent: boolean;
-};
+/**
+ * 获取节点的所有祖先节点
+ *
+ * 从给定节点开始，向上遍历获取所有父节点，用于缩进引导线计算。
+ * 返回的数组从直接父节点开始，到根节点结束。
+ *
+ * @param node - 目标节点
+ * @returns 祖先节点数组，从父节点到根节点
+ */
+const getAncestors = (node: NodeApi): NodeApi[] => {
+  const ancestors: NodeApi[] = [];
+  let current = node.parent;
 
-export function IndentGuides<T>({ node, tree }: IndentGuidesProps<T>) {
-  if (!tree.props.showIndentGuides || node.level <= 0) {
-    return null;
-  }
-
-  const indent = tree.indent;
-  if (indent <= 0) {
-    return null;
-  }
-
-  const segments: Segment[] = [];
-  let current: NodeApi<T> | null = node;
-
-  while (current && current.parent && current.parent.level >= 0) {
-    segments.unshift({
-      hasSiblingAfter: Boolean(current.nextSibling),
-      isCurrent: segments.length === 0,
-    });
+  while (current) {
+    ancestors.push(current);
     current = current.parent;
   }
 
-  if (segments.length === 0) {
-    return null;
-  }
+  return ancestors;
+};
 
-  const containerStyle: React.CSSProperties = {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: indent * segments.length,
-    pointerEvents: "none",
-  };
+export function getExpandedNodes<T>(tree: TreeApi<T>): NodeApi<T>[] {
+  return tree.visibleNodes.filter((node) => node.isInternal && node.isOpen);
+}
 
-  return (
-    <div style={containerStyle} aria-hidden>
-      {segments.map((segment, index) => {
-        const left = index * indent;
-        const center = indent / 2;
-        const lineColor = segment.isCurrent ? DEFAULT_ACTIVE_COLOR : DEFAULT_COLOR;
-        const verticalStyle: React.CSSProperties = {
+export function IndentGuides<T>({ node, tree }: IndentGuidesProps<T>) {
+  const depth = node.level;
+  const selectedFile = tree.selectedNodes[0];
+  const expandedFolders = getExpandedNodes(tree);
+
+  // 根节点不需要缩进线
+  if (depth <= 0) return null;
+  // 阶段一：计算 activeIndentNodeIds 集合
+  // 当选中一个节点时，只将它的直接父节点（或自身，如果它是文件夹）标记为"活动"
+  const activeIndentNodeIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!selectedFile) return ids;
+
+    const selectedNode = tree.get(selectedFile.id);
+    if (!selectedNode) return ids;
+
+    // 如果选中节点是文件夹且处于展开状态，则将其自身ID加入集合
+    if (
+      selectedNode.children &&
+      selectedNode.children.length > 0 &&
+      selectedNode.isOpen
+    ) {
+      ids.add(selectedNode.id);
+    } else if (selectedNode.parent) {
+      // 如果是文件或关闭的文件夹，则将其父节点ID加入集合
+      ids.add(selectedNode.parent.id);
+    }
+    return ids;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFile, tree, expandedFolders]);
+
+  const lines = [];
+
+  // 阶段二：渲染缩进引导线
+  // 从当前渲染的节点向上遍历，检查每一级的父节点是否在 activeIndentNodeIds 集合中
+  const ancestors = getAncestors(node);
+  // 为每个缩进层级生成垂直连接线
+  for (let i = 0; i < depth; i++) {
+    // tree.iconWidth 控制缩进线在图标区域内的横向位置
+    const leftPos = i * tree.indent + tree.iconWidth / 2;
+
+    // 获取当前层级对应的祖先节点
+    // node.level - 1 - i 是为了从根部开始的祖先数组中正确索引
+    const ancestor = ancestors[node.level - 1 - i];
+    const isActive = !!(ancestor && activeIndentNodeIds.has(ancestor.id));
+
+    lines.push(
+      <div
+        key={`vertical-${i}`}
+        className={`tree-line-vertical ${isActive ? "active" : ""}`}
+        style={{
+          left: `${leftPos}px`,
+          width: 0,
           position: "absolute",
           top: 0,
-          bottom: segment.isCurrent && !segment.hasSiblingAfter ? "50%" : 0,
-          left: left + center,
-          width: LINE_WIDTH,
-          backgroundColor: lineColor,
-          transform: "translateX(-50%)",
-          borderRadius: LINE_WIDTH,
-          opacity: segment.isCurrent ? 0.9 : 0.6,
-        };
+          height: tree.rowHeight,
+          borderLeft: isActive
+            ? tree.indentGuideActiveBorder
+            : tree.indentGuideBorder,
+        }}
+      />,
+    );
+  }
 
-        const connectorStyle: React.CSSProperties = {
-          position: "absolute",
-          top: "50%",
-          left: left + center,
-          width: indent - center,
-          height: LINE_WIDTH,
-          backgroundColor: lineColor,
-          transform: "translateY(-50%)",
-          borderRadius: LINE_WIDTH,
-        };
-
-        const shouldRenderVertical = segment.hasSiblingAfter || segment.isCurrent;
-
-        return (
-          <React.Fragment key={index}>
-            {shouldRenderVertical ? <div style={verticalStyle} /> : null}
-            {segment.isCurrent && indent > LINE_WIDTH ? <div style={connectorStyle} /> : null}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
+  return <>{lines}</>;
 }

@@ -207,6 +207,7 @@ function Node({ style, node, dragHandle, tree }: NodeRendererProps<Entry>) {
           tree.dragDestinationParent?.id !== tree.dragNode?.parent?.id,
       })}
       ref={dragHandle}
+      onClick={() => tree.toggle(node.id)}
     >
       {node.isInternal ? <MdFolder /> : <SiTypescript />}
       {node.data.name} {node.id}
@@ -264,6 +265,7 @@ function VSCodeDemoPage() {
           rowHeight={22}
           showIndentGuides
           stickyScroll={true}
+          iconWidth={13}
           stickyScrollMaxNodes={4}
           onMove={() => {}}
           renderCursor={() => null}

@@ -80,8 +80,25 @@ export class TreeApi<T> {
     return this.props.indent ?? 24;
   }
 
+  get iconWidth() {
+    return this.props.iconWidth ?? 8;
+  }
+
   get rowHeight() {
     return this.props.rowHeight ?? 24;
+  }
+
+  get indentGuideBorder() {
+    return (
+      this.props.indentGuideBorder ?? "1px solid rgb(128 128 128 / 0.3)"
+    );
+  }
+
+  get indentGuideActiveBorder() {
+    return (
+      this.props.indentGuideActiveBorder ??
+      "1px solid rgb(128 128 128 / 0.7)"
+    );
   }
 
   get overscanCount() {

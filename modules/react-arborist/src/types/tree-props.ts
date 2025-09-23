@@ -31,6 +31,9 @@ export interface TreeProps<T> {
   width?: number | string;
   height?: number;
   indent?: number;
+  iconWidth?: number;
+  indentGuideBorder?: string;
+  indentGuideActiveBorder?: string;
   paddingTop?: number;
   paddingBottom?: number;
   padding?: number;
