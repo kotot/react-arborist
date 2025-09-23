@@ -18,7 +18,9 @@ interface StickyScrollNode {
   startIndex: number;
   endIndex: number;
 }
-
+interface StickyHeaderProps {
+  stickyState: StickyScrollState | undefined;
+}
 class StickyScrollState {
   constructor(readonly stickyNodes: StickyScrollNode[] = []) {}
 
@@ -89,6 +91,100 @@ class StickyScrollState {
   }
 }
 
+function StickyHeader({ stickyState }: StickyHeaderProps) {
+  const tree = useTreeApi();
+
+  // 如果没有sticky状态或节点数为0，不渲染
+  if (!stickyState || stickyState.count === 0) {
+    return null;
+  }
+
+  const handleNodeClick = (node: NodeApi<any>) => {
+    // Scroll to the corresponding node in the tree
+    tree.scrollTo(node.id, "center");
+    // Focus the node for better UX
+    tree.focus(node);
+  };
+
+  // 计算总高度
+  const lastNode = stickyState.stickyNodes[stickyState.count - 1];
+  const totalHeight = lastNode.position + lastNode.height;
+
+  const Node = tree.renderNode;
+  const Row = tree.renderRow;
+  return (
+    <div
+      className="sticky-scroll-container"
+      style={{
+        position: "absolute",
+        // 稍微偏移一点点，才可以实现比较好的吸顶效果
+        top: -3,
+        left: 0,
+        right: 0,
+        height: totalHeight,
+        zIndex: 1,
+        overflow: "hidden",
+        backgroundColor: "inherit",
+      }}
+    >
+      {stickyState.stickyNodes.map((stickyNode, index) => {
+        const node = stickyNode.node;
+        const indent = node.level * tree.indent;
+
+        const rowAttrs = {
+          role: "treeitem",
+          "aria-level": node.level + 1,
+          "aria-selected": node.isSelected,
+          "aria-expanded": node.isOpen,
+          tabIndex: -1,
+          className: "sticky-row",
+          onClick: () => handleNodeClick(node),
+          style: {
+            position: "absolute" as const,
+            top: stickyNode.position,
+            left: 0,
+            right: 0,
+            height: stickyNode.height,
+            display: "flex",
+            alignItems: "center",
+            cursor: "pointer",
+            background: "inherit",
+            zIndex: index === stickyState.count - 1 ? -1 : 0,
+          },
+        };
+
+        const nodeStyle = {
+          paddingLeft: indent,
+          width: "100%",
+        };
+
+        return (
+          <Row key={node.id} node={node} innerRef={() => {}} attrs={rowAttrs}>
+            <Node
+              node={node}
+              tree={tree}
+              style={nodeStyle}
+              dragHandle={() => {}}
+            />
+          </Row>
+        );
+      })}
+
+      {/* 阴影效果 */}
+      <div
+        className="sticky-scroll-shadow"
+        style={{
+          position: "absolute",
+          bottom: "-3px",
+          left: 0,
+          right: 0,
+          height: "3px",
+          boxShadow: "rgb(221, 221, 221) 0px 6px 6px -6px inset",
+        }}
+      />
+    </div>
+  );
+}
 /**
  * All these keyboard shortcuts seem like they should be configurable.
  * Each operation should be a given a name and separated from
@@ -225,10 +321,6 @@ export function DefaultContainer() {
   ): number => {
     // 获取最后一个子孙节点的相对位置 (0-1)
     let lastChildRelativeTop = getRelativeTop(lastDescendantIndex);
-    console.log(
-      "🚀 ~ calculateStickyNodePosition ~ lastChildRelativeTop:",
-      lastChildRelativeTop,
-    );
 
     // 处理边缘情况：如果最后一个子孙节点在视口顶部被裁切
     if (
@@ -267,10 +359,6 @@ export function DefaultContainer() {
     }
 
     // 否则保持默认位置
-    console.log(
-      "🚀 ~ calculateStickyNodePosition ~ stickyRowPositionTop:",
-      stickyRowPositionTop,
-    );
     return stickyRowPositionTop;
   };
 
@@ -436,9 +524,7 @@ export function DefaultContainer() {
         nextStickyNode.node,
         stickyNodesHeight,
       );
-      // console.log("🚀 ~ findStickyState ~ nextStickyNode:", nextStickyNode);
     }
-    console.log("🚀 ~ findStickyState ~ stickyNodes:", stickyNodes);
     const constrainedStickyNodes = constrainStickyNodes(stickyNodes);
     return constrainedStickyNodes.length
       ? new StickyScrollState(constrainedStickyNodes)
@@ -500,6 +586,7 @@ export function DefaultContainer() {
         minWidth: 0,
         overflow: "hidden",
         position: "relative",
+        backgroundColor: "inherit",
       }}
       onContextMenu={tree.props.onContextMenu}
       onClick={tree.props.onClick}
@@ -714,104 +801,6 @@ export function DefaultContainer() {
       >
         {RowContainer}
       </FixedSizeList>
-    </div>
-  );
-}
-
-interface StickyHeaderProps {
-  stickyState: StickyScrollState | undefined;
-}
-
-function StickyHeader({ stickyState }: StickyHeaderProps) {
-  const tree = useTreeApi();
-
-  // 如果没有sticky状态或节点数为0，不渲染
-  if (!stickyState || stickyState.count === 0) {
-    return null;
-  }
-
-  const handleNodeClick = (node: NodeApi<any>) => {
-    // Scroll to the corresponding node in the tree
-    tree.scrollTo(node.id, "center");
-    // Focus the node for better UX
-    tree.focus(node);
-  };
-
-  // 计算总高度
-  const lastNode = stickyState.stickyNodes[stickyState.count - 1];
-  const totalHeight = lastNode.position + lastNode.height;
-
-  const Node = tree.renderNode;
-  const Row = tree.renderRow;
-  return (
-    <div
-      className="sticky-scroll-container"
-      style={{
-        position: "absolute",
-        // 稍微偏移一点点，才可以实现比较好的吸顶效果
-        top: -1,
-        left: 0,
-        right: 0,
-        height: totalHeight,
-        zIndex: 1,
-        overflow: "hidden",
-      }}
-    >
-      {stickyState.stickyNodes.map((stickyNode, index) => {
-        const node = stickyNode.node;
-        const indent = node.level * tree.indent;
-
-        const rowAttrs = {
-          role: "treeitem",
-          "aria-level": node.level + 1,
-          "aria-selected": node.isSelected,
-          "aria-expanded": node.isOpen,
-          tabIndex: -1,
-          className: "sticky-row",
-          onClick: () => handleNodeClick(node),
-          style: {
-            position: "absolute" as const,
-            top: stickyNode.position,
-            left: 0,
-            right: 0,
-            height: stickyNode.height,
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-            background: "inherit",
-            zIndex: index === stickyState.count - 1 ? -1 : 0,
-          },
-        };
-
-        const nodeStyle = {
-          paddingLeft: indent,
-          width: "100%",
-        };
-
-        return (
-          <Row key={node.id} node={node} innerRef={() => {}} attrs={rowAttrs}>
-            <Node
-              node={node}
-              tree={tree}
-              style={nodeStyle}
-              dragHandle={() => {}}
-            />
-          </Row>
-        );
-      })}
-
-      {/* 阴影效果 */}
-      <div
-        className="sticky-scroll-shadow"
-        style={{
-          position: "absolute",
-          bottom: "-3px",
-          left: 0,
-          right: 0,
-          height: "3px",
-          boxShadow: "rgb(221, 221, 221) 0px 6px 6px -6px inset",
-        }}
-      />
     </div>
   );
 }

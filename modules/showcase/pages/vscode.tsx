@@ -220,7 +220,7 @@ function VSCodeDemoPage() {
   const [mounted, setMounted] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
-  const data = useTreeSort(structure2);
+  const data = useTreeSort(structure);
 
   useEffect(() => {
     setMounted(true);

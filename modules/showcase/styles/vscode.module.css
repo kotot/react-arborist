@@ -27,8 +27,7 @@
   color: rgb(95, 122, 135);
 }
 .sidebar :global(.sticky-scroll-container) {
-  background: #192226;
-  color: rgb(95, 122, 135);
+  /* opacity: 0.3; */
 }
 
 /* Light theme overrides */
@@ -37,8 +36,7 @@
   color: #333333;
 }
 .light .sidebar :global(.sticky-scroll-container) {
-  background: #f3f3f3;
-  color: #333333;
+  /* opacity: 0.3; */
 }
 
 .main {
