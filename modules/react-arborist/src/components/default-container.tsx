@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FixedSizeList } from "react-window";
 import { useDataUpdates, useTreeApi } from "../context";
 import { focusNextElement, focusPrevElement } from "../utils";
@@ -8,6 +8,8 @@ import { RowContainer } from "./row-container";
 import type { NodeApi } from "../interfaces/node-api";
 import { ROOT_ID } from "../data/create-root";
 import { IndentGuides } from "./indent-guides";
+import SimpleBar from "simplebar-react";
+import simpleBarStyles from "../styles/simplebar.module.css";
 
 let focusSearchTerm = "";
 let timeoutId: any = null;
@@ -792,24 +794,36 @@ export function DefaultContainer() {
       {tree.props.stickyScroll && stickyState && (
         <StickyHeader stickyState={stickyState} />
       )}
-      {/* @ts-ignore */}
-      <FixedSizeList
-        className={tree.props.className}
-        outerRef={tree.listEl}
-        itemCount={tree.visibleNodes.length}
-        height={tree.height}
-        width={tree.width}
-        itemSize={tree.rowHeight}
-        overscanCount={tree.overscanCount}
-        itemKey={(index) => tree.visibleNodes[index]?.id || index}
-        outerElementType={ListOuterElement}
-        innerElementType={ListInnerElement}
-        onScroll={handleScroll}
-        onItemsRendered={tree.onItemsRendered.bind(tree)}
-        ref={tree.list}
+      <SimpleBar
+        autoHide={false}
+        style={{ height: tree.height, width: tree.width }}
+        className={simpleBarStyles.root}
       >
-        {RowContainer}
-      </FixedSizeList>
+        {({ scrollableNodeRef, contentNodeRef }) => {
+          return (
+            /* @ts-ignore */
+            <FixedSizeList
+              className={tree.props.className}
+              // outerRef={tree.listEl}
+              itemCount={tree.visibleNodes.length}
+              height={tree.height}
+              width={tree.width}
+              itemSize={tree.rowHeight}
+              overscanCount={tree.overscanCount}
+              itemKey={(index) => tree.visibleNodes[index]?.id || index}
+              outerElementType={ListOuterElement}
+              innerElementType={ListInnerElement}
+              onScroll={handleScroll}
+              onItemsRendered={tree.onItemsRendered.bind(tree)}
+              ref={tree.list}
+              innerRef={contentNodeRef}
+              outerRef={scrollableNodeRef}
+            >
+              {RowContainer}
+            </FixedSizeList>
+          );
+        }}
+      </SimpleBar>
     </div>
   );
 }

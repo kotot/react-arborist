@@ -1,11 +1,12 @@
 import { mkdir, readdir, stat, copyFile, rm } from "node:fs/promises";
-import { join, dirname, normalize } from "node:path";
+import { join, dirname, normalize, relative } from "node:path";
 
-const SOURCE_DIR = join(process.cwd(), "src");
+const SOURCE_DIRECTORIES = [
+  { root: join(process.cwd(), "src"), basePath: "" },
+];
 const OUTPUT_TARGETS = [
   { dir: join(process.cwd(), "dist", "main"), preserveStructure: true },
   { dir: join(process.cwd(), "dist", "module"), preserveStructure: true },
-  { dir: join(process.cwd(), "styles"), preserveStructure: false },
 ];
 
 const CSS_EXTENSIONS = new Set([".css"]);
@@ -32,8 +33,10 @@ async function ensureDir(path) {
   await mkdir(path, { recursive: true });
 }
 
-async function copyAsset(file) {
-  const relPath = file.slice(SOURCE_DIR.length + 1);
+async function copyAsset(file, source) {
+  const relPath = source.basePath
+    ? join(source.basePath, relative(source.root, file))
+    : relative(source.root, file);
 
   await Promise.all(
     OUTPUT_TARGETS.map(async ({ dir, preserveStructure }) => {
@@ -64,22 +67,35 @@ async function removeAsset(relPath, { isDir = false } = {}) {
 }
 
 async function main() {
-  try {
-    await stat(SOURCE_DIR);
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return;
+  const availableSources = [];
+
+  for (const source of SOURCE_DIRECTORIES) {
+    try {
+      const stats = await stat(source.root);
+      if (!stats.isDirectory()) continue;
+      availableSources.push(source);
+    } catch (error) {
+      if (error && error.code === "ENOENT") {
+        continue;
+      }
+      throw error;
     }
-    throw error;
+  }
+
+  if (availableSources.length === 0) {
+    return;
   }
 
   const operations = [];
-  for await (const file of walk(SOURCE_DIR)) {
-    const idx = file.lastIndexOf(".");
-    if (idx === -1) continue;
-    const ext = file.slice(idx);
-    if (CSS_EXTENSIONS.has(ext)) {
-      operations.push(copyAsset(file));
+
+  for (const source of availableSources) {
+    for await (const file of walk(source.root)) {
+      const idx = file.lastIndexOf(".");
+      if (idx === -1) continue;
+      const ext = file.slice(idx);
+      if (CSS_EXTENSIONS.has(ext)) {
+        operations.push(copyAsset(file, source));
+      }
     }
   }
 
@@ -89,34 +105,48 @@ async function main() {
     return;
   }
 
-  const watcher = chokidar.watch(join(SOURCE_DIR, "**", "*.css"), {
-    ignoreInitial: true,
-  });
+  const watchers = availableSources.map((source) => ({
+    source,
+    watcher: chokidar.watch(join(source.root, "**", "*.css"), {
+      ignoreInitial: true,
+    }),
+  }));
 
-  watcher
-    .on("add", (path) =>
-      copyAsset(path).catch((error) =>
-        console.error(`Failed to copy CSS asset added at ${path}:`, error),
-      ),
-    )
-    .on("change", (path) =>
-      copyAsset(path).catch((error) =>
-        console.error(`Failed to copy CSS asset changed at ${path}:`, error),
-      ),
-    )
-    .on("unlink", (path) =>
-      removeAsset(path.slice(SOURCE_DIR.length + 1)).catch((error) =>
-        console.error(`Failed to remove CSS asset at ${path}:`, error),
-      ),
-    )
-    .on("unlinkDir", (path) =>
-      removeAsset(path.slice(SOURCE_DIR.length + 1), { isDir: true }).catch((error) =>
-        console.error(`Failed to remove CSS directory at ${path}:`, error),
-      ),
-    );
+  for (const { watcher, source } of watchers) {
+    watcher
+      .on("add", (path) =>
+        copyAsset(path, source).catch((error) =>
+          console.error(`Failed to copy CSS asset added at ${path}:`, error),
+        ),
+      )
+      .on("change", (path) =>
+        copyAsset(path, source).catch((error) =>
+          console.error(`Failed to copy CSS asset changed at ${path}:`, error),
+        ),
+      )
+      .on("unlink", (path) =>
+        removeAsset(
+          source.basePath
+            ? join(source.basePath, relative(source.root, path))
+            : relative(source.root, path),
+        ).catch((error) =>
+          console.error(`Failed to remove CSS asset at ${path}:`, error),
+        ),
+      )
+      .on("unlinkDir", (path) =>
+        removeAsset(
+          source.basePath
+            ? join(source.basePath, relative(source.root, path))
+            : relative(source.root, path),
+          { isDir: true },
+        ).catch((error) =>
+          console.error(`Failed to remove CSS directory at ${path}:`, error),
+        ),
+      );
+  }
 
   await new Promise((resolve, reject) => {
-    watcher.on("error", reject);
+    watchers.forEach(({ watcher }) => watcher.on("error", reject));
   });
 }
 
