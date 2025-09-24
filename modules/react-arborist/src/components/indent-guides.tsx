@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { NodeApi } from "../interfaces/node-api";
 import { TreeApi } from "../interfaces/tree-api";
+import styles from "../styles/indent-guides.module.css";
 
 type IndentGuidesProps<T> = {
   node: NodeApi<T>;
@@ -81,7 +82,11 @@ export function IndentGuides<T>({ node, tree }: IndentGuidesProps<T>) {
     lines.push(
       <div
         key={`vertical-${i}`}
-        className={`tree-line-vertical ${isActive ? "active" : ""}`}
+        className={
+          isActive
+            ? `${styles.treeLineVertical} ${styles.treeLineVerticalActive}`
+            : styles.treeLineVertical
+        }
         style={{
           left: `${leftPos}px`,
           width: 0,

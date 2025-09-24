@@ -7,6 +7,7 @@ import { ListInnerElement } from "./list-inner-element";
 import { RowContainer } from "./row-container";
 import type { NodeApi } from "../interfaces/node-api";
 import { ROOT_ID } from "../data/create-root";
+import { IndentGuides } from "./indent-guides";
 
 let focusSearchTerm = "";
 let timeoutId: any = null;
@@ -158,8 +159,17 @@ function StickyHeader({ stickyState }: StickyHeaderProps) {
           width: "100%",
         };
 
+        const guides = tree.props.showIndentGuides ? (
+          <IndentGuides node={node} tree={tree} />
+        ) : null;
         return (
-          <Row key={node.id} node={node} innerRef={() => {}} attrs={rowAttrs}>
+          <Row
+            key={node.id}
+            node={node}
+            innerRef={() => {}}
+            attrs={rowAttrs}
+            guides={guides}
+          >
             <Node
               node={node}
               tree={tree}
