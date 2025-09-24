@@ -1,0 +1,16 @@
+.treeLineVertical {
+  opacity: 0;
+  transition: opacity 0.1s linear;
+}
+.arborist-tree {
+  background-color: inherit;
+}
+
+.arborist-tree:hover .treeLineVertical {
+  opacity: 0.7;
+  transition: opacity 0.1s linear;
+}
+
+.treeLineVerticalActive {
+  opacity: 1;
+}

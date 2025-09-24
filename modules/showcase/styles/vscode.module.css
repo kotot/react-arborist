@@ -124,7 +124,6 @@
 }
 
 .node:global(.isLeaf) svg {
-  width: 10px;
   fill: #3865bd;
 }
 

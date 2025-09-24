@@ -3,6 +3,7 @@ import { useDataUpdates, useNodesContext, useTreeApi } from "../context";
 import { useDragHook } from "../dnd/drag-hook";
 import { useDropHook } from "../dnd/drop-hook";
 import { useFreshNode } from "../hooks/use-fresh-node";
+import { IndentGuides } from "./indent-guides";
 
 type Props = {
   style: React.CSSProperties;
@@ -75,8 +76,12 @@ export const RowContainer = React.memo(function RowContainer<T>({
   const Node = tree.renderNode;
   const Row = tree.renderRow;
 
+  const guides = tree.props.showIndentGuides ? (
+    <IndentGuides node={node} tree={tree} />
+  ) : null;
+
   return (
-    <Row node={node} innerRef={innerRef} attrs={rowAttrs}>
+    <Row node={node} innerRef={innerRef} attrs={rowAttrs} guides={guides}>
       <Node node={node} tree={tree} style={nodeStyle} dragHandle={dragRef} />
     </Row>
   );

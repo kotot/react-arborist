@@ -7,6 +7,7 @@ export function DefaultRow<T>({
   attrs,
   innerRef,
   children,
+  guides,
 }: RowRendererProps<T>) {
   return (
     <div
@@ -15,6 +16,7 @@ export function DefaultRow<T>({
       onFocus={(e) => e.stopPropagation()}
       onClick={node.handleClick}
     >
+      {guides}
       {children}
     </div>
   );
