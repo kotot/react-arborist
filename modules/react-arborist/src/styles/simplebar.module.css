@@ -233,16 +233,14 @@
   -ms-overflow-style: none;
 }
 
-.hideScrollbar {
-  &::-webkit-scrollbar {
-    width: 0;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-    box-shadow: none;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: transparent;
-    box-shadow: none;
-  }
+.hideScrollbar::-webkit-scrollbar {
+  width: 0;
+}
+.hideScrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  box-shadow: none;
+}
+.hideScrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  box-shadow: none;
 }
