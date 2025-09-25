@@ -1,6 +1,7 @@
 .treeLineVertical {
   opacity: 0;
   transition: opacity 0.1s linear;
+  z-index: 1;
 }
 .arborist-tree {
   background-color: inherit;
@@ -13,4 +14,5 @@
 
 .treeLineVerticalActive {
   opacity: 1;
+  z-index: 1;
 }
