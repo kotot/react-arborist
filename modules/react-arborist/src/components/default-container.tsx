@@ -803,7 +803,7 @@ export function DefaultContainer() {
           return (
             /* @ts-ignore */
             <FixedSizeList
-              className={tree.props.className}
+              className={`${tree.props.className} ${simpleBarStyles.hideScrollbar}`}
               // outerRef={tree.listEl}
               itemCount={tree.visibleNodes.length}
               height={tree.height}
